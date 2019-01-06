@@ -1,0 +1,38 @@
+body {
+	background: #333;
+	margin: 0px;
+	font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+.wrapper {
+	width: 50%;
+	margin: auto;
+	margin-top: 20px;
+	padding: 20px;
+	background: #888;
+	box-shadow: 0 0 20px black;
+}
+h1 {
+	text-align: center;
+	margin-bottom: 10px;
+}
+h1:first-of-type {
+	margin-top: 0;
+}
+h3 {
+	margin: 0px;
+}
+p {
+	line-height: 23px;
+}
+ul {
+	margin-top: 10px;
+}
+.minimizeBlock {
+	margin-left: 30px;
+}
+a, a:visited {
+	color: rgb(125, 40, 0);
+}
+a:hover {
+	color: #350C00;
+}

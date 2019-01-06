@@ -1,0 +1,39 @@
+==================================
+TODO
+==================================
+	- save aliases of owned games
+	- load if
+		- add steam game
+		- alias added (need total num of aliases?)
+	- Load aliases from steamXML
+	- output list based on machine names (txt?)
+		- http://api.steampowered.com/ISteamApps/GetAppList/v0002/?format=json
+	- steam profile picture
+	- websites to add
+		- Humble Store
+		- Indigala
+			- & Store
+		- Bundle Stars
+
+
+CHANGE NAMES TO STEAMBUNDLE
+BACKGROUND STEAM LIUBRAYR OF GAMES
+
+==================================
+BEFORE PUBLISHING
+==================================
+	- change from indexTEST.php
+	- change version
+	- TEST CASES
+		- no id
+		- bad profile
+		- no wishlist
+		- no games?
+
+
+==================================
+NEXT VERSION
+==================================
+	- added easeing to owned and wishlisted games
+	- fixed bug with no messages showing on invalid profile names
+	- huge wishlist support
