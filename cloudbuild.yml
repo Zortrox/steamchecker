@@ -9,7 +9,7 @@ steps:
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["_CLIENT_SECRET=$(cat", "secrets.json", "|", "jq", "-r", ".clientSecret)"]
+  args: ["exec", "_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["_REFRESH_TOKEN=$(cat", "secrets.json", "|", "jq", "-r", ".refreshToken)"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
