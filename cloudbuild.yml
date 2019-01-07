@@ -13,7 +13,7 @@ steps:
 
 #secret variables
 - name: 'ubuntu'
-  args: ["CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)"]
+  args: ["CLIENT_SECRET=$(cat", "secrets.json", "|", "jq", "-r", ".clientSecret)"]
 - name: 'ubuntu'
   args: ["REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)"]
 - name: 'ubuntu'
