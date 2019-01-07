@@ -8,7 +8,6 @@ steps:
   args: ["zip", "-r", "extension.zip", "extension"]
 
 #decrypt
-steps:
 - name: gcr.io/cloud-builders/gcloud
   args: ["kms", "decrypt", "--ciphertext-file=secrets.json.enc", "--plaintext-file=secrets.json", "--location=global", "--keyring=foxslash-keyring", "--key=foxslash-apps"]
 
