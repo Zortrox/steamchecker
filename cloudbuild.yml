@@ -1,7 +1,9 @@
 steps:
-#update system & create archive
+#update system
 - name: 'ubuntu'
-  args: ["apt-get", "update", "&&", "apt-get", "-y", "install", "curl", "jq", "zip"]
+  args: ["apt-get", "update"]
+- name: 'ubuntu'
+  args: ["apt-get", "update", "&&", "apt-get", "install", "-y", "curl", "jq", "zip"]
 - name: 'ubuntu'
   args: ["zip", "-r", "extension.zip", "extension"]
 
