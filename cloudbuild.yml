@@ -9,11 +9,11 @@ steps:
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["-it", "gcr.io/zortrox-github-builds/ubuntu-common", "_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)"]
+  args: ["echo", "_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)", "|", "bash", "-"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["_REFRESH_TOKEN=$(cat", "secrets.json", "|", "jq", "-r", ".refreshToken)"]
+  args: ["echo", "_REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)", "|", "bash", "-"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["_JWT_SECRET=$(cat", "secrets.json", "|", "jq", "-r", ".jwtSecret)"]
+  args: ["echo", "_JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)", "|", "bash", "-"]
 
 #Chrome Webstore
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
@@ -27,7 +27,7 @@ steps:
 
 #Mozilla Add-ons
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["_EXTENSION_VERSION=$(cat", "test.json", "|", "jq", "-r", "'.version')"]
+  args: ["echo", "_EXTENSION_VERSION=$(cat test.json | jq -r '.version')", "|", "bash", "-"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["curl", "'https://addons.mozilla.org/api/v4/addons/'", "-g", "-XPOST", "-F", "'upload=@extension.zip'", "-F", "'version=${_EXTENSION_VERSION}'", "-H", "'Authorization:", "JWT", "${_JWT_SECRET}'"]
 
