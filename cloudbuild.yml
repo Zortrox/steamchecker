@@ -31,9 +31,9 @@ steps:
 
 #Mozilla Add-ons
 - name: 'ubuntu'
-  args: ["EXTENSION_VERSION=$(cat", "test.json", "|", "jq", "-r", "'.version')"]
+  args: ["_EXTENSION_VERSION=$(cat", "test.json", "|", "jq", "-r", "'.version')"]
 - name: 'ubuntu'
-  args: ["curl", "'https://addons.mozilla.org/api/v4/addons/'", "-g", "-XPOST", "-F", "'upload=@extension.zip'", "-F", "'version=$EXTENSION_VERSION'", "-H", "'Authorization:", "JWT", "${_JWT_SECRET}'"]
+  args: ["curl", "'https://addons.mozilla.org/api/v4/addons/'", "-g", "-XPOST", "-F", "'upload=@extension.zip'", "-F", "'version=${_EXTENSION_VERSION}'", "-H", "'Authorization:", "JWT", "${_JWT_SECRET}'"]
 
 substitutions:
     _CLIENT_ID: 487050059648-4iej3hk4mbbhdravaaake8vs72s2cdi2.apps.googleusercontent.com
