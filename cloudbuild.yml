@@ -5,7 +5,7 @@ steps:
 
 #decrypt
 - name: gcr.io/cloud-builders/gcloud
-  args: ["kms", "decrypt", "--ciphertext-file=secrets.json.enc", "--plaintext-file=secrets.json", "--location=global", "--keyring=foxslash-keyring", "--key=foxslash-apps"]
+  args: ["kms", "decrypt", "--ciphertext-file=secrets.json.enc", "--plaintext-file=secrets.json", "--location=global", "--keyring=foxslash-apps", "--key=foxslash-key"]
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
