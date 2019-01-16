@@ -9,11 +9,14 @@ steps:
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo \"_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)\" >> ~/.bashrc"]
+  args: ["bash", "-c", "echo '_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)' >> ~/.bashrc"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo \"_REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)\" >> ~/.bashrc"]
+  args: ["bash", "-c", "echo '_REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)' >> ~/.bashrc"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo \"_JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)\" >> ~/.bashrc"]
+  args: ["bash", "-c", "echo '_JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)' >> ~/.bashrc"]
+
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
+  args: ["source", "~/.bashrc"]
 
 #Chrome Webstore
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
