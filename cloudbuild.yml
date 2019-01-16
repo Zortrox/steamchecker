@@ -9,17 +9,17 @@ steps:
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "export _CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)"]
+  args: ["bash", "-c", "echo \"_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)\" >> ~/.bashrc"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "export _REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)"]
+  args: ["bash", "-c", "echo \"_REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)\" >> ~/.bashrc"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "export _JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)"]
+  args: ["bash", "-c", "echo \"_JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)\" >> ~/.bashrc"]
 
 #Chrome Webstore
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'export _ACCESS_TOKEN=$(curl https://accounts.google.com/o/oauth2/token -d "client_id=${_CLIENT_ID}&client_secret=${_CLIENT_SECRET}&refresh_token=${_REFRESH_TOKEN}&grant_type=refresh_token&redirect_uri=urn:ietf:wg:oauth:2.0:oob" | jq -r .access_token)']
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID} -H "Authorization: Bearer ${_ACCESS_TOKEN}" -H "x-goog-api-version: 2" -X PUT -T extension.zip"']
+  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}', '-H "Authorization: Bearer ${_ACCESS_TOKEN}"', '-H "x-goog-api-version: 2"', '-X PUT', '-T extension.zip']
   #curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "x-goog-api-version: 2" -X PUT -T pointless.zip -v "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${_APP_ID}"
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish -H "Authorization: Bearer ${_ACCESS_TOKEN}", "-H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST']
