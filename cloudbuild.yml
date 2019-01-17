@@ -34,7 +34,7 @@ steps:
 artifacts:
   objects:
     location: 'gs://artifacts.zortrox-github-builds.appspot.com/extensions'
-    paths: ['steamchecker-extension.zip']
+    paths: ['steamchecker_extension.zip']
 
 substitutions:
     _CLIENT_ID: 487050059648-4iej3hk4mbbhdravaaake8vs72s2cdi2.apps.googleusercontent.com
