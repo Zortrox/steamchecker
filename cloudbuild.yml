@@ -9,30 +9,30 @@ steps:
 
 #secret variables
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo '_CLIENT_SECRET=$(cat secrets.json | jq -r .clientSecret)' >> ~/.bashrc"]
+  args: ["bash", "-c", "cat secrets.json | jq -r .clientSecret > _CLIENT_SECRET"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo '_REFRESH_TOKEN=$(cat secrets.json | jq -r .refreshToken)' >> ~/.bashrc"]
+  args: ["bash", "-c", "cat secrets.json | jq -r .refreshToken > _REFRESH_TOKEN"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "echo '_JWT_SECRET=$(cat secrets.json | jq -r .jwtSecret)' >> ~/.bashrc"]
+  args: ["bash", "-c", "cat secrets.json | jq -r .jwtSecret > _JWT_SECRET"]
 
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["source", "~/.bashrc"]
 
 #Chrome Webstore
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", 'export _ACCESS_TOKEN=$(curl https://accounts.google.com/o/oauth2/token -d "client_id=${_CLIENT_ID}&client_secret=${_CLIENT_SECRET}&refresh_token=${_REFRESH_TOKEN}&grant_type=refresh_token&redirect_uri=urn:ietf:wg:oauth:2.0:oob" | jq -r .access_token)']
+  args: ["bash", "-c", 'curl https://accounts.google.com/o/oauth2/token -d "client_id=${_CLIENT_ID}&client_secret=$(cat _CLIENT_SECRET)&refresh_token=$(cat _REFRESH_TOKEN)&grant_type=refresh_token&redirect_uri=urn:ietf:wg:oauth:2.0:oob" | jq -r .access_token > _ACCESS_TOKEN']
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}', '-H "Authorization: Bearer ${_ACCESS_TOKEN}"', '-H "x-goog-api-version: 2"', '-X PUT', '-T extension.zip']
+  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}', '-H "Authorization: Bearer $(cat _ACCESS_TOKEN)"', '-H "x-goog-api-version: 2"', '-X PUT', '-T extension.zip']
   #curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "x-goog-api-version: 2" -X PUT -T pointless.zip -v "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${_APP_ID}"
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish -H "Authorization: Bearer ${_ACCESS_TOKEN}", "-H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST']
+  args: ["curl", '-v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish -H "Authorization: Bearer $(cat _ACCESS_TOKEN)", "-H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST']
   #curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST -v "https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish"
 
 #Mozilla Add-ons
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["bash", "-c", "_EXTENSION_VERSION=$(cat test.json | jq -r '.version')"]
+  args: ["bash", "-c", "cat test.json | jq -r '.version' > _EXTENSION_VERSION"]
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["curl", "\"https://addons.mozilla.org/api/v4/addons/\"", "-g", "-XPOST", "-F", "\"upload=@extension.zip\"", "-F", "\"version=${_EXTENSION_VERSION}\"", "-H", "\"Authorization: JWT ${_JWT_SECRET}\""]
+  args: ["curl", "\"https://addons.mozilla.org/api/v4/addons/\"", "-g", "-XPOST", "-F", "\"upload=@extension.zip\"", "-F", "\"version=$(cat _EXTENSION_VERSION)\"", "-H", "\"Authorization: JWT $(cat _JWT_SECRET)\""]
 
 substitutions:
     _CLIENT_ID: 487050059648-4iej3hk4mbbhdravaaake8vs72s2cdi2.apps.googleusercontent.com
