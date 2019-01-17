@@ -15,9 +15,6 @@ steps:
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", "cat secrets.json | jq -r .jwtSecret > _JWT_SECRET"]
 
-- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
-  args: ["source", "~/.bashrc"]
-
 #Chrome Webstore
 - name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'curl https://accounts.google.com/o/oauth2/token -d "client_id=${_CLIENT_ID}&client_secret=$(cat _CLIENT_SECRET)&refresh_token=$(cat _REFRESH_TOKEN)&grant_type=refresh_token&redirect_uri=urn:ietf:wg:oauth:2.0:oob" | jq -r .access_token > _ACCESS_TOKEN']
