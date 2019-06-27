@@ -1,2 +1,3 @@
 webpage/images/*.psd
 secrets.json
+release/extension.zip
