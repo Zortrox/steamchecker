@@ -26,6 +26,67 @@
 	transition: all .5s ease-out;
 }
 
+/*HUMBLE BUNDLE STORE*/
+.ownedGame.entity-block-container {
+	box-shadow: none !important;
+	-webkit-filter: grayscale(100%);
+	filter: grayscale(100%);
+	transition: all .5s ease-out;
+}
+.ownedGame.entity-block-container .entity-title {
+	text-decoration: line-through;
+	color: #808080;
+	transition: all .5s ease-out;
+}
+.ownedGame.entity-block-container .entity-meta {
+	background-color: rgba(148, 148, 148, 0.35) !important;
+}
+.ownedGame.entity-block-container .entity-purchase-details,
+.ownedGame.entity-block-container .page-view-details {
+	background-color: #8a8a8a !important;
+	border-color: #8a8a8a !important;
+}
+.ownedGame.entity-block-container:after {
+	content: "";
+	position: absolute;
+	display: block;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	box-shadow: inset 0 0 20px rgba(0,0,0,0.8) !important;
+	pointer-events: none;
+}
+
+.ownedGame.entity-container {
+	box-shadow: 0 0 5px 5px inset rgba(0,0,0,0.3) !important;
+	-webkit-filter: grayscale(100%);
+	filter: grayscale(100%);
+	background-color: rgba(0,0,0,.2) !important;
+	transition: all .5s ease-out;
+}
+
+.wishedGame.entity-block-container {
+	box-shadow: 0 0 10px #ffd700 !important;
+	transition: all .5s ease-out;
+}
+.wishedGame.entity-block-container .entity-meta {
+	background-color: rgba(255, 255, 41, 0.60) !important;
+}
+.wishedGame.entity-block-container .entity-purchase-details,
+.wishedGame.entity-block-container .page-view-details {
+	background-color: #ffd700 !important;
+	border-color: #ffd700 !important;
+}
+.wishedGame.entity-block-container.slick-slide .entity-meta {
+	background-color: rgba(255, 255, 41, 0.60) !important;
+}
+
+.wishedGame.entity-container {
+	box-shadow: 0 0 5px #ffd700;
+    border: 1px solid #ffd700 !important;
+    background-color: #ffd700 !important;
+}
 
 /*HUMBLE BUNDLE KEYS*/
 .ownedKey {
