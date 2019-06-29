@@ -1,4 +1,12 @@
 steps:
+#update apt
+- name: 'ubuntu'
+  args: ["sudo", "apt-get", "update"]
+
+#create archive
+- name: 'ubuntu'
+  args: ["sudo", "apt-get", "install", "zip"]
+
 #create archive
 - name: 'ubuntu'
   args: ["zip", "-r", "steamchecker_extension.zip", "extension"]
