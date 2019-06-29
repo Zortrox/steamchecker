@@ -1,4 +1,4 @@
 steps:
 #create archive
-- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
+- name: 'ubuntu'
   args: ["zip", "-r", "steamchecker_extension.zip", "extension"]
