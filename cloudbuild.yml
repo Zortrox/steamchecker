@@ -1,11 +1,11 @@
 steps:
 #update apt
 - name: 'ubuntu'
-  args: ["sudo", "apt-get", "update"]
+  args: ["apt-get", "update"]
 
 #create archive
 - name: 'ubuntu'
-  args: ["sudo", "apt-get", "install", "zip"]
+  args: ["apt-get", "install", "zip"]
 
 #create archive
 - name: 'ubuntu'
