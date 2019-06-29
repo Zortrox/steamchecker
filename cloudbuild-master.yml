@@ -21,7 +21,7 @@ steps:
 
 artifacts:
   objects:
-    location: 'gs://artifacts.zortrox-github-builds.appspot.com/extensions'
+    location: 'gs://artifacts.foxslash-apps.appspot.com/extensions'
     paths: ['steamchecker_extension.zip']
 
 substitutions:
