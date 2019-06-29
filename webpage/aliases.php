@@ -1,5 +1,8 @@
 <?php
 
+header('Content-Type: application/json;charset=utf-8');
+header("Access-Control-Allow-Origin: *");
+
 $gameAliases = isset($_GET["a"]) ? $_GET["a"] : 0;
 $gameAll = isset($_GET["all"]) ? true : false;
 
