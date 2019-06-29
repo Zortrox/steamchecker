@@ -94,7 +94,7 @@
 	background: #8e8e8e !important;
 	transition: all .5s ease-out;
 }
-.ownedKey .game-name a{
+.ownedKey .game-name a {
 	color: #484848;
 	transition: all .5s ease-out;
 }
@@ -104,30 +104,34 @@
 	border-color: #848484 !important;
 	transition: all .5s ease-out;
 }
-.ownedKey .giftbutton {
+.ownedKey .hb-gift {
 	position: relative;
 }
-.ownedKey .giftbutton .star{
+.ownedKey .hb-gift .star {
 	position: absolute;
-	left: -15px;
-	top: -10px;
+	left: calc(50% - 32px);
+	top: calc(50% - 32px);
 
-	
 	-webkit-filter: blur(3px);
 	-moz-filter: blur(3px);
 	filter: blur(3px);
 	
-	-webkit-animation: rotate 4s linear infinite;
-	-moz-animation: rotate 4s linear infinite;
-	animation: rotate 4s linear infinite;
+	-webkit-animation: fs-rotate 4s linear infinite;
+	-moz-animation: fs-rotate 4s linear infinite;
+	animation: fs-rotate 4s linear infinite;
 }
-.ownedKey .giftbutton i {
+.ownedKey i.hb-gift {
 	color: #ffd700;
 	text-shadow: 0 0 10px black, 0 0 20px #ffd700, 0 0 50px #ffd700;
 	transition: all .5s ease-out;
 }
+.ownedKey .giftfield {
+	background-color: #ffeb86 !important;
+    overflow: hidden;
+}
+
 .wishedKey {
-	background: #ffd700 !important;
+	background-color: #ffd700 !important;
 	box-shadow: 0 0 20px yellow;
 }
 .wishedKey .keyfield {
@@ -137,19 +141,19 @@
 	color: #656565;
 }
 
-@-moz-keyframes rotate {
+@-moz-keyframes fs-rotate {
 	100% {
 		-moz-transform: rotate(360deg);
 	}
 }
-@-webkit-keyframes rotate {
+@-webkit-keyframes fs-rotate {
 	100% {
 		-webkit-transform: rotate(360deg);
 	}
 }
-@keyframes rotate {
+@keyframes fs-rotate {
 	100% {
 		-webkit-transform: rotate(360deg);
-		transform:rotate(360deg);
+		transform: rotate(360deg);
 	}
 }

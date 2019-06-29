@@ -35,7 +35,7 @@ function mutationFunction() {
 	var config = { subtree: true, childList: true };
 	var callback = function(mutationsList) {
 		for(var index in mutationsList) {
-			if (mutationsList[index].type == 'childList') {
+			if (mutationsList[index].type == 'childList' && mutationsList[index].target.nodeName.toLowerCase() != "i") {
 				nodeAdded();
 			}
 		}
@@ -188,7 +188,7 @@ function highlightGames() {
 				} else if (currentMode == HighlightMode.KEYS) {
 					var ownedTR = $("td.game-name h4[title='" + machineNames[j] + "']").closest("tr");
 					ownedTR.addClass("ownedKey");
-					ownedTR.find(".giftbutton").append("<img src=\"" + chrome.extension.getURL('star.png') + "\" class=\"star\"/>");
+					ownedTR.find(".hb-gift").append("<img src=\"" + chrome.extension.getURL('star.png') + "\" class=\"star\"/>");
 				} else if (currentMode == HighlightMode.STORE || currentMode == HighlightMode.SEARCH) {
 					$(".entity-block-container .entity-title:contains('" + machineNames[j] + "')").closest(".entity-block-container").addClass("ownedGame");
 					$(".entity-container .entity-title[title='" + machineNames[j] + "']").closest(".entity-container").addClass("ownedGame");
@@ -292,7 +292,7 @@ function start() {
 			var defAppList = $.Deferred();
 
 			var xhrGames = new XMLHttpRequest();
-			xhrGames.open("GET", "https://foxslash.com/apps/steamchecker/?steamid=" + obj.steamid + id64, true);
+			xhrGames.open("GET", "https://www.foxslash.com/apps/steamchecker/?steamid=" + obj.steamid + id64, true);
 			xhrGames.onreadystatechange = function() {
 				if (xhrGames.readyState == 4) {
 					var data = JSON.parse(xhrGames.responseText);
@@ -315,7 +315,7 @@ function start() {
 			xhrGames.send();
 
 			var xhrWishlist = new XMLHttpRequest();
-			xhrWishlist.open("GET", "https://foxslash.com/apps/steamchecker/wishlist.php?type=" + wishlistTag + "&id=" + obj.steamid, true);
+			xhrWishlist.open("GET", "https://www.foxslash.com/apps/steamchecker/wishlist.php?type=" + wishlistTag + "&id=" + obj.steamid, true);
 			xhrWishlist.onreadystatechange = function() {
 				if (xhrWishlist.readyState == 4) {
 					var data = JSON.parse(xhrWishlist.responseText);
@@ -347,7 +347,7 @@ function start() {
 			}
 
 			var xhrAliases = new XMLHttpRequest();
-			xhrAliases.open("GET", "https://foxslash.com/apps/steamchecker/aliases.php?" + phpArgs, true);
+			xhrAliases.open("GET", "https://www.foxslash.com/apps/steamchecker/aliases.php?" + phpArgs, true);
 			xhrAliases.onreadystatechange = function() {
 				if (xhrAliases.readyState == 4) {
 					var data = JSON.parse(xhrAliases.responseText);

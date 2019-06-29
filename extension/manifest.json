@@ -1,6 +1,6 @@
 {
 	"manifest_version": 2,
-	"version": "0.8",
+	"version": "0.80",
 	"name": "SteamChecker",
 	"description": "Grays-out & highlights owned/wishlisted Steam games on Humble Bundle",
 	"icons": { 
