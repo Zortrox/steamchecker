@@ -34,6 +34,7 @@ function jsonMessage($msg) {
 
 if (isset($_GET['steamid'])) {
 	header('Content-Type: application/json;charset=utf-8');
+	header("Access-Control-Allow-Origin: *");
 	$APIkey = "B4FB690143E90D406DF3392540297A2A";
 	$command = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=" . $APIkey . "&include_appinfo=1&steamid=";
 
