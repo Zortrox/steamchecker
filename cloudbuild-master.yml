@@ -1,22 +1,22 @@
 steps:
 #create archive
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["zip", "-r", "steamchecker_extension.zip", "extension"]
 
 #Chrome Webstore
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'curl https://accounts.google.com/o/oauth2/token -d "client_id=${_CLIENT_ID}&client_secret=${_CLIENT_SECRET}&refresh_token=${_REFRESH_TOKEN}&grant_type=refresh_token&redirect_uri=urn:ietf:wg:oauth:2.0:oob" | jq -r .access_token > _ACCESS_TOKEN']
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'curl https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID} -H "Authorization: Bearer $(cat _ACCESS_TOKEN)" -H "x-goog-api-version: 2" -X PUT -T steamchecker_extension.zip']
   #curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "x-goog-api-version: 2" -X PUT -T pointless.zip -v "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${_APP_ID}"
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'curl -v https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish -H "Authorization: Bearer $(cat _ACCESS_TOKEN)" -H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST']
   #curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "x-goog-api-version: 2" -H "Content-Length: 0" -X POST -v "https://www.googleapis.com/chromewebstore/v1.1/items/${_APP_ID}/publish"
 
 #Mozilla Add-ons
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", "cat test.json | jq -r '.version' > _EXTENSION_VERSION"]
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["bash", "-c", 'curl https://addons.mozilla.org/api/v4/addons/ -g -XPOST -F upload=@steamchecker_extension.zip -F version=$(cat _EXTENSION_VERSION) -H "Authorization: JWT ${_JWT_SECRET}"']
 
 artifacts:

@@ -1,8 +1,4 @@
 steps:
-#update apt and install zip
-- name: 'ubuntu'
-  args: ["apt-get", "update", "&&", "apt-get", "install", "-qqy", "zip"]
-
 #create archive
-- name: 'ubuntu'
+- name: 'gcr.io/zortrox-github-builds/ubuntu-common'
   args: ["zip", "-r", "steamchecker_extension.zip", "extension"]
