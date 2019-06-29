@@ -1,11 +1,7 @@
 steps:
-#update apt
+#update apt and install zip
 - name: 'ubuntu'
-  args: ["apt-get", "update"]
-
-#create archive
-- name: 'ubuntu'
-  args: ["apt-get", "install", "zip"]
+  args: ["apt-get", "update", "&&", "apt-get", "install", "-qqy", "zip"]
 
 #create archive
 - name: 'ubuntu'
