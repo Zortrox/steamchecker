@@ -1,4 +1,4 @@
 webpage/images/*.psd
 secrets.json
-release/extension.zip
+release
 webpage/images/*

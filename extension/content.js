@@ -21,7 +21,8 @@ var HighlightMode = Object.freeze({
 	BUNDLE: 0,
 	KEYS: 1,
 	STORE: 2,
-	SEARCH: 3
+	SEARCH: 3,
+	CHOICE: 4
 });
 var currentMode = 0;
 
@@ -175,41 +176,46 @@ function processJSON(data) {
 	});
 }
 
+function addClassToElements(webName, webIndex, gameName, addedClass) {
+	if (webName == gameName) {
+		if (currentMode == HighlightMode.BUNDLE) {
+			$("[" + gamenameAttr + "='" + machineNames[webIndex] + "']").closest(".dd-image-box").addClass(addedClass);
+		} else if (currentMode == HighlightMode.KEYS) {
+			var keyElement = $("td.game-name h4[title='" + machineNames[webIndex] + "']").closest("tr");
+			if (addedClass == "ownedGame") {
+				keyElement.addClass("ownedKey");
+				keyElement.find(".hb-gift").append("<img src=\"" + chrome.extension.getURL('star.png') + "\" class=\"star\"/>");
+			} else {
+				keyElement.addClass("wishedKey");
+			}
+		} else if (currentMode == HighlightMode.STORE || currentMode == HighlightMode.SEARCH) {
+			$(".entity-block-container").filter( function() {
+				return $(".entity-title", this).text() == machineNames[webIndex];
+			}).addClass(addedClass);
+			$(".entity-container .entity-title[title='" + machineNames[webIndex] + "']").closest(".entity-container").addClass(addedClass);
+		} else if (currentMode == HighlightMode.CHOICE) {
+			$(".content-choice").filter( function() {
+				return $(".content-choice-title", this).text() == machineNames[webIndex];
+			}).addClass(addedClass);
+		}
+	}
+}
+
 //show owned and wishlisted games
 function highlightGames() {
 	prevTime = Date.now();
 
 	//check if names are the same
 	$.each(ownedNames, function(i, steamName) {
-		$.each(webNames, function(j, webName) {
-			if (webName == steamName) {
-				if (currentMode == HighlightMode.BUNDLE) {
-					$("[" + gamenameAttr + "='" + machineNames[j] + "']").closest(".dd-image-box").addClass("ownedGame");
-				} else if (currentMode == HighlightMode.KEYS) {
-					var ownedTR = $("td.game-name h4[title='" + machineNames[j] + "']").closest("tr");
-					ownedTR.addClass("ownedKey");
-					ownedTR.find(".hb-gift").append("<img src=\"" + chrome.extension.getURL('star.png') + "\" class=\"star\"/>");
-				} else if (currentMode == HighlightMode.STORE || currentMode == HighlightMode.SEARCH) {
-					$(".entity-block-container .entity-title:contains('" + machineNames[j] + "')").closest(".entity-block-container").addClass("ownedGame");
-					$(".entity-container .entity-title[title='" + machineNames[j] + "']").closest(".entity-container").addClass("ownedGame");
-				}
-			}
+		$.each(webNames, function(webIndex, webName) {
+			addClassToElements(webName, webIndex, steamName, "ownedGame");
 		});
 	});
 
 	//check if in wishlist
 	$.each(wishedNames, function(i, wishName) {
-		$.each(webNames, function(j, webName) {
-			if (webName == wishName) {
-				if (currentMode == HighlightMode.BUNDLE) {
-					$("[" + gamenameAttr + "='" + machineNames[j] + "']").closest(".dd-image-box").addClass("wishedGame");
-				} else if (currentMode == HighlightMode.KEYS) {
-					$("td.game-name h4[title='" + machineNames[j] + "']").closest("tr").addClass("wishedKey");
-				} else if (currentMode == HighlightMode.STORE || currentMode == HighlightMode.SEARCH) {
-					$(".entity-block-container .entity-title:contains('" + machineNames[j] + "')").closest(".entity-block-container").addClass("wishedGame");
-					$(".entity-container .entity-title[title='" + machineNames[j] + "']").closest(".entity-container").addClass("wishedGame");
-				}
-			}
+		$.each(webNames, function(webIndex, webName) {
+			addClassToElements(webName, webIndex, wishName, "wishedGame");
 		});
 	});
 
@@ -253,6 +259,16 @@ function processWebpageData() {
 				machineNames.push(title.replace(/(["'])/, "\\$1"));
 				webNames.push(title.toLowerCase().replace(/[\W_]/g, ''));
 				htmlElements.push($(this).closest(".entity-block-container, .entity-container"));
+			}
+		});
+	} else if (currentMode == HighlightMode.CHOICE) {
+		$(".content-choice .content-choice-title").each(function() {
+			var title = $( this ).text();
+
+			if (title != "") {
+				machineNames.push(title.replace(/(["'])/, "\\$1"));
+				webNames.push(title.toLowerCase().replace(/[\W_]/g, ''));
+				htmlElements.push($(this).closest(".content-choice"));
 			}
 		});
 	} else {
@@ -333,21 +349,19 @@ function start() {
 			xhrWishlist.send();
 
 			//get php arguments of game names
-			var phpArgs = "";
+			var phpArgs = {};
 			if (currentMode == HighlightMode.KEYS) {
-				phpArgs = "all";
+				phpArgs.type = "all";
 			} else {
-				$.each(webNames, function(index, name) {
-					if (index == 0) {
-						phpArgs += "a[]=" + name;
-					} else {
-						phpArgs += "&a[]=" + name;
-					}
+				phpArgs.type = "some";
+				phpArgs.names = [];
+				$.each(webNames, function(i, name) {
+					phpArgs.names.push(name);
 				});
 			}
 
 			var xhrAliases = new XMLHttpRequest();
-			xhrAliases.open("GET", "https://www.foxslash.com/apps/steamchecker/aliases.php?" + phpArgs, true);
+			xhrAliases.open("POST", "https://www.foxslash.com/apps/steamchecker/aliases.php", true);
 			xhrAliases.onreadystatechange = function() {
 				if (xhrAliases.readyState == 4) {
 					var data = JSON.parse(xhrAliases.responseText);
@@ -364,7 +378,7 @@ function start() {
 					successAliases = true;
 				}
 			};
-			xhrAliases.send();
+			xhrAliases.send( JSON.stringify(phpArgs) );
 
 			var xhrAppList = new XMLHttpRequest();
 			xhrAppList.open("GET", "https://www.foxslash.com/apps/steamchecker/appList.json", true);
@@ -414,6 +428,7 @@ $(function() {
 		if (thisURL == "/home/keys") currentMode = HighlightMode.KEYS;
 		else if (thisURL == "/store") currentMode = HighlightMode.STORE;
 		else if (thisURL == "/store/search") currentMode = HighlightMode.SEARCH;
+		else if (thisURL == "/subscription/home") currentMode = HighlightMode.CHOICE;
 
 		start();
 	} else {

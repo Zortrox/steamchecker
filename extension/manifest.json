@@ -1,35 +1,38 @@
 {
-	"manifest_version": 2,
-	"version": "0.80",
-	"name": "SteamChecker",
-	"description": "Grays-out & highlights owned/wishlisted Steam games on Humble Bundle",
-	"icons": { 
-		"128": "icon-128.png",
-		"48":"icon-48.png",
-		"16": "icon-16.png"
-	}, 
-	"permissions": [
-		"storage",
-		"https://*.foxslash.com/*",
-		"webRequest"
-	],
+  "manifest_version": 3,
+  "version": "0.95",
+  "name": "SteamChecker",
+  "description": "Grays-out & highlights owned/wishlisted Steam games on Humble Bundle",
+  "icons": {
+    "128": "icon-128.png",
+    "48": "icon-48.png",
+    "16": "icon-16.png"
+  },
+  "permissions": ["storage", "https://www.foxslash.com/apps/steamchecker/*"],
 
-	"background": {
-		"page": "popup.htm"
-	},
+  "background": {
+    "page": "popup.htm"
+  },
 
-	"web_accessible_resources": ["star.png"],
+  "web_accessible_resources": ["star.png"],
 
-	"content_scripts": [ {
-		"matches": [
-			"https://www.humblebundle.com/*"
-		],
-		"js": ["jquery-3.1.0.min.js", "content.js"],
-		"css": ["steamStyles.css"]
-	}],
+  "content_scripts": [
+    {
+      "matches": ["https://www.humblebundle.com/*"],
+      "js": ["jquery-3.1.0.min.js", "content.js"],
+      "css": ["steamStyles.css"]
+    }
+  ],
 
-	"browser_action": {
-		"default_icon": "icon.png",
-		"default_popup": "popup.htm"
-	}
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.htm"
+  },
+
+  "applications": {
+    "gecko": {
+      "id": "@steamchecker",
+      "strict_min_version": "48.0"
+    }
+  }
 }
