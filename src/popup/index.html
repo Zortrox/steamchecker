@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Steam Library Checker</title>
+    <link
+      rel="stylesheet"
+      href="popup.css"
+    />
+  </head>
+  <body>
+    <h1>Steam Library Checker</h1>
+    <div class="formDiv">
+      SteamID:<br />
+      <input
+        id="steamid"
+        name="id64"
+      />
+    </div>
+    <div class="formDiv">
+      <label>
+        ID64:
+        <input
+          id="id64"
+          name="id64"
+          type="checkbox"
+      /></label>
+    </div>
+    <div>
+      <button id="saveButton">Save</button>
+      <span id="steamtext">
+        <a href="http://steampowered.com"> Powered by Steam </a>
+      </span>
+    </div>
+    <p id="saveMessage"><span>SteamID Saved</span></p>
+    <footer>
+      <a
+        href="https://twitter.com/Zortrox"
+        target="_blank"
+      >
+        @Zortrox
+      </a>
+      <br />
+      <a
+        href="https://www.foxslash.com/apps/steamchecker/"
+        target="_blank"
+      >
+        Extension Site
+      </a>
+      <span id="version">Version: 0.2</span>
+    </footer>
+  </body>
+
+  <script src="popup.js"></script>
+</html>
