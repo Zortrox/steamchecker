@@ -20,11 +20,11 @@
     {
       "matches": ["https://www.humblebundle.com/*"],
       "js": ["content.js"],
-      "css": ["assets/styles/steamStyles.css"]
+      "css": ["assets/styles/steamcheckerStyles.css"]
     }
   ],
 
-  "browser_action": {
+  "action": {
     "default_icon": "assets/icons/icon.png",
     "default_popup": "popup/index.html"
   },

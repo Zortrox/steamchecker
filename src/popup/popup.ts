@@ -1,37 +1,48 @@
+import { TabMessage, type TabResponse } from '../types/messages';
 import type { SteamIDSettings } from '../types/steamid-settings';
 
 (() => {
   function saveSteamID() {
     let steamID = document.querySelector<HTMLInputElement>('#steamid')?.value;
+    let isID64 = document.querySelector<HTMLInputElement>('#id64')?.checked;
+
+    if (!steamID || isID64 == null) {
+      return;
+    }
 
     let steamIDSettings: SteamIDSettings = {
-      steamid: $('#steamid').val(),
-      id64: $('#id64').is(':checked'),
+      steamid: steamID,
+      id64: isID64,
     };
 
-    storageType.set(steamIDSettings, function () {
+    storageType.set(steamIDSettings, () => {
       console.log('Saved SteamID: ' + steamIDSettings.steamid);
       console.log('SteamID64: ' + steamIDSettings.id64);
 
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        let currentTabID = tabs[0]?.id;
+        if (currentTabID == null) {
+          return;
+        }
+
         chrome.tabs.sendMessage(
-          tabs[0].id,
-          { message: 'removeGameData' },
-          function (response) {
-            if (response) {
-              console.log(response.message);
-            }
+          currentTabID,
+          { message: TabMessage.REMOVE_GAME_DATA },
+          function (response?: TabResponse) {
+            if (!response) return;
+
+            console.log(response.message);
           }
         );
       });
 
-      $('#saveMessage span').css('opacity', 1);
-      $('#saveMessage span').stop().animate(
-        {
-          opacity: 0,
-        },
-        1500
-      );
+      let saveMessage =
+        document.querySelector<HTMLSpanElement>('#saveMessage span');
+      if (!saveMessage) return;
+
+      saveMessage.classList.toggle('fade-out');
+      saveMessage.offsetLeft; // trigger reflow
+      saveMessage.classList.toggle('fade-out');
     });
   }
 
@@ -41,21 +52,32 @@ import type { SteamIDSettings } from '../types/steamid-settings';
     storageType = chrome.storage.sync;
   }
 
-  $('#saveButton').click(function () {
+  document.querySelector('#saveButton')?.addEventListener('click', () => {
     saveSteamID();
   });
 
-  storageType.get(['steamid', 'id64'], function (obj) {
-    if (obj) {
-      if (obj.steamid) {
-        $('#steamid').val(obj.steamid);
+  storageType.get(['steamid', 'id64'], (obj) => {
+    if (!obj) {
+      return;
+    }
+
+    if (obj['steamid']) {
+      let inputSteamID = document.querySelector<HTMLInputElement>('#steamid');
+      if (inputSteamID) {
+        inputSteamID.value = obj['steamid'];
       }
-      if (obj.id64) {
-        $('#id64').prop('checked', true);
+    }
+    if (obj['id64']) {
+      let inputID64 = document.querySelector<HTMLInputElement>('#id64');
+      if (inputID64) {
+        inputID64.checked = true;
       }
     }
   });
 
-  var manifest = chrome.runtime.getManifest();
-  $('#version').text('Version: ' + manifest.version);
+  let manifest = chrome.runtime.getManifest();
+  let elemVersion = document.querySelector('#version');
+  if (elemVersion) {
+    elemVersion.textContent = `Version: ${manifest.version}`;
+  }
 })();
