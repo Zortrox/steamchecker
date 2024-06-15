@@ -1,0 +1,221 @@
+.steamchecker-ownedGame .dd-image-box-figure {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame .hover-black-overlay {
+  visibility: visible !important;
+  box-shadow: inset 0px 0px 20px rgba(0, 0, 0, 0.8);
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame .dd-image-box-caption {
+  text-decoration: line-through;
+  color: #808080;
+  transition: all 0.5s ease-out;
+}
+
+.steamchecker-wishedGame .hover-black-overlay {
+  visibility: visible !important;
+  background-color: transparent !important;
+  opacity: 1 !important;
+  box-shadow: inset 0px 0px 70px #ffd800, 0 0 20px yellow;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame .dd-image-box-caption {
+  color: #ffd700;
+  transition: all 0.5s ease-out;
+}
+
+/*HUMBLE BUNDLE STORE*/
+.steamchecker-ownedGame.entity-block-container {
+  box-shadow: none !important;
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.entity-block-container .entity-title {
+  text-decoration: line-through;
+  color: #808080;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.entity-block-container .entity-meta {
+  background-color: rgba(148, 148, 148, 0.35) !important;
+}
+.steamchecker-ownedGame.entity-block-container .entity-purchase-details,
+.steamchecker-ownedGame.entity-block-container .page-view-details {
+  background-color: #8a8a8a !important;
+  border-color: #8a8a8a !important;
+}
+.steamchecker-ownedGame.entity-block-container:after {
+  content: '';
+  position: absolute;
+  display: block;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
+  pointer-events: none;
+}
+
+.steamchecker-ownedGame.entity-container {
+  box-shadow: 0 0 5px 5px inset rgba(0, 0, 0, 0.3) !important;
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.5s ease-out;
+}
+
+.steamchecker-wishedGame.entity-block-container {
+  box-shadow: 0 0 10px #ffd700 !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.entity-block-container .entity-meta {
+  background-color: rgba(255, 255, 41, 0.6) !important;
+}
+.steamchecker-wishedGame.entity-block-container .entity-purchase-details,
+.steamchecker-wishedGame.entity-block-container .page-view-details {
+  background-color: #ffd700 !important;
+  border-color: #ffd700 !important;
+}
+.steamchecker-wishedGame.entity-block-container.slick-slide .entity-meta {
+  background-color: rgba(255, 255, 41, 0.6) !important;
+}
+
+.steamchecker-wishedGame.entity-container {
+  box-shadow: 0 0 5px #ffd700;
+  border: 1px solid #ffd700 !important;
+  background-color: #ffd700 !important;
+}
+
+/*HUMBLE BUNDLE CHOICE (SUBSCRIPTION)*/
+.steamchecker-ownedGame.content-choice {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  background-color: #000;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.content-choice .choice-content {
+  opacity: 0.8;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.content-choice .choice-image-container {
+  box-shadow: inset 0px 0px 20px rgba(0, 0, 0, 0.8);
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.content-choice .choice-image {
+  opacity: 0.25;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.content-choice .content-choice-title {
+  text-decoration: line-through;
+  color: #808080 !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedGame.content-choice .delivery-methods i {
+  color: #808080 !important;
+  transition: all 0.5s ease-out;
+}
+
+.steamchecker-wishedGame.content-choice {
+  box-shadow: 0 0 10px #ffd700 !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.content-choice .choice-content {
+  background-color: #9c872b !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.content-choice .choice-content:hover {
+  background-color: #6d5d14 !important;
+}
+.steamchecker-wishedGame.content-choice .choice-image-container {
+  box-shadow: inset 0px 0px 70px #ffd800;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.content-choice .choice-image {
+  opacity: 0.8;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.content-choice .title-and-delivery-methods {
+  color: #ffffff;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-wishedGame.content-choice
+  .choice-content:active
+  .title-and-delivery-methods {
+  color: #ada16a;
+}
+.steamchecker-wishedGame.content-choice .delivery-methods i {
+  color: inherit !important;
+  transition: all 0.5s ease-out;
+}
+
+/*HUMBLE BUNDLE KEYS*/
+.steamchecker-ownedKey {
+  box-shadow: inset 0 1px 6px black;
+  background: #8e8e8e !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedKey .game-name a {
+  color: #484848;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedKey .keyfield {
+  background: #cecece !important;
+  color: #6f6f6f !important;
+  border-color: #848484 !important;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedKey .hb-gift {
+  position: relative;
+}
+.steamchecker-ownedKey .hb-gift .star {
+  position: absolute;
+  left: calc(50% - 32px);
+  top: calc(50% - 32px);
+
+  -webkit-filter: blur(3px);
+  -moz-filter: blur(3px);
+  filter: blur(3px);
+
+  -webkit-animation: fs-rotate 4s linear infinite;
+  -moz-animation: fs-rotate 4s linear infinite;
+  animation: fs-rotate 4s linear infinite;
+}
+.steamchecker-ownedKey i.hb-gift {
+  color: #ffd700;
+  text-shadow: 0 0 10px black, 0 0 20px #ffd700, 0 0 50px #ffd700;
+  transition: all 0.5s ease-out;
+}
+.steamchecker-ownedKey .giftfield {
+  background-color: #ffeb86 !important;
+  overflow: hidden;
+}
+
+.steamchecker-wishedKey {
+  background-color: #ffd700 !important;
+  box-shadow: 0 0 20px yellow;
+}
+.steamchecker-wishedKey .keyfield {
+  background: rgb(255, 255, 255);
+  box-shadow: 0 0 5px #ff6900;
+  font-weight: bold;
+  color: #656565;
+}
+
+@-moz-keyframes fs-rotate {
+  100% {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes fs-rotate {
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@keyframes fs-rotate {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}

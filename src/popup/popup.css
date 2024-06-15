@@ -1,0 +1,67 @@
+body {
+  background-color: black;
+  color: white;
+  width: 200px;
+  padding: 10px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  font-size: 12px;
+}
+h1 {
+  margin-top: 0px;
+  text-align: center;
+  font-size: 24px;
+}
+p {
+  margin-bottom: 0px;
+}
+a,
+a:visited {
+  color: #999;
+}
+a:hover {
+  color: #ccc;
+}
+
+#saveMessage {
+  height: 20px;
+}
+#saveMessage span {
+  opacity: 0;
+}
+.fade-out {
+  opacity: 0;
+  animation: fade-out 1.5s;
+}
+
+#steamid {
+  width: 100%;
+}
+.formDiv {
+  margin-bottom: 5px;
+}
+.formDiv label {
+  display: block;
+}
+#id64 {
+  vertical-align: bottom;
+  height: 13px;
+  position: relative;
+  top: -1px;
+  margin: 0;
+}
+#steamtext {
+  float: right;
+  text-align: right;
+}
+#version {
+  float: right;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
