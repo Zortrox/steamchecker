@@ -17,7 +17,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "validate-manifest": "web-ext lint",
-    "prepack": "bun run build"
+    "postversion": "bun run build"
   },
   "type": "module"
 }
