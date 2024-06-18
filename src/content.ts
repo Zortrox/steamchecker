@@ -12,6 +12,7 @@ import type {
   FoxslashResponseWishlist,
   SESD_Details,
   SteamcheckerExtensionSaveData,
+  SteamcheckerFoundGameElement,
   SteamcheckerWebpageSelectors,
 } from './types/foxslash-data';
 import type { GameData, GameShortNames } from './types/game-data';
@@ -89,13 +90,10 @@ class SteamChecker {
     | chrome.storage.SyncStorageArea
     | chrome.storage.LocalStorageArea;
 
-  private webpageSelectorSettings: SteamcheckerWebpageSelectors | undefined;
+  private webpageSelectorSettings: SteamcheckerWebpageSelectors[] | undefined;
 
   // arrays for games currently on webpage
-  private webpageGames: {
-    name: string;
-    wrapper: HTMLElement;
-  }[] = [];
+  private webpageGames: SteamcheckerFoundGameElement[] = [];
   // private machineNames: string[] = [];
 
   // arrays for game names + aliases
@@ -246,7 +244,7 @@ class SteamChecker {
     }
 
     return fetch(
-      `https://www.foxslash.com/apps/steamchecker/?${params.toString()}`
+      `https://www.foxslash.com/apps/steamchecker/owned/?${params.toString()}`
     )
       .then((d) => d.json())
       .then((response: FoxslashResponseOwnedGamesWithAliases) => {
@@ -284,7 +282,7 @@ class SteamChecker {
     });
 
     return fetch(
-      `https://www.foxslash.com/apps/steamchecker/wishlist.php?${params.toString()}`
+      `https://www.foxslash.com/apps/steamchecker/wishlist/?${params.toString()}`
     )
       .then((d) => d.json())
       .then((response: FoxslashResponseWishlist) => {
@@ -320,15 +318,16 @@ class SteamChecker {
       type: 'all',
     };
 
-    if (this.webpageSelectorSettings.partial_aliases === true) {
-      phpArgs.type = 'some';
-      phpArgs.names = [];
-      this.webpageGames.forEach((game) => {
-        phpArgs.names!.push(game.name);
-      });
-    }
+    // IDEA: Possibly fix this in the future; currently doesn't work with mutation observer
+    // if (this.webpageSelectorSettings.partial_aliases === true) {
+    //   phpArgs.type = 'some';
+    //   phpArgs.names = [];
+    //   this.webpageGames.forEach((game) => {
+    //     phpArgs.names!.push(game.name);
+    //   });
+    // }
 
-    return fetch('https://www.foxslash.com/apps/steamchecker/aliases.php', {
+    return fetch('https://www.foxslash.com/apps/steamchecker/aliases/', {
       method: 'POST',
       body: JSON.stringify(phpArgs),
     })
@@ -390,17 +389,24 @@ class SteamChecker {
     }
 
     // GET WEB GAME DATA
-    let mutationKeysTable = new SteamCheckerMutationListener(async () => {
-      this.processWebpageData();
-      this.highlightGames();
+    let hasNonObservers = false;
+    this.webpageSelectorSettings.forEach((selectorSettings) => {
+      if (selectorSettings.observer) {
+        let mutationKeysTable = new SteamCheckerMutationListener(() => {
+          this.processWebpageData();
+          this.highlightGames();
+        });
+        mutationKeysTable.observe(selectorSettings.observer);
+      } else {
+        hasNonObservers = true;
+      }
     });
-    if (this.webpageSelectorSettings.observer) {
-      mutationKeysTable.observe(this.webpageSelectorSettings.observer);
-    } else {
+    // process all non-observer data at the same time
+    if (hasNonObservers) {
       this.processWebpageData();
     }
 
-    this.timeStartPerformance = Date.now();
+    this.timeStartPerformance = Date.now(); // start performance timer for fetching
 
     let [owned, wishlist, aliases, appList] = await Promise.all([
       this.fetchOwnedGames(steamIDSettings.steamid, steamIDSettings.id64),
@@ -417,6 +423,8 @@ class SteamChecker {
     };
 
     await this.processJSON(fetchedData);
+
+    this.highlightGames();
   }
 
   private loadAliases(
@@ -453,8 +461,13 @@ class SteamChecker {
       }
     });
 
-    SteamChecker.extConsoleOut('Aliases loaded');
-    SteamChecker.extConsoleOut(addNames);
+    if (addNames.size === 0) {
+      SteamChecker.extConsoleOut(`No aliases found for this set of games.`);
+    } else {
+      SteamChecker.extConsoleOut(
+        `Aliases loaded: ${Array.from(addNames).join(', ')}`
+      );
+    }
 
     return addNames;
   }
@@ -507,7 +520,9 @@ class SteamChecker {
 
     if (this.ownedShortNames) {
       SteamChecker.extConsoleOut(
-        `Loaded ${Object.keys(this.ownedShortNames)} owned game short names`
+        `Loaded ${
+          Object.keys(this.ownedShortNames).length
+        } owned game short names`
       );
     } else {
       this.ownedShortNames = {};
@@ -544,11 +559,19 @@ class SteamChecker {
     let wishlistGeneratedHash = this.hashGames(wishlistGames);
 
     if (wishlistHash === wishlistGeneratedHash) {
+      this.wishedShortNames = (
+        await this.getStorageData(['wishlist_shortnames'])
+      ).wishlist_shortnames?.reduce((shortnames, sn) => {
+        shortnames[sn] = true;
+        return shortnames;
+      }, {} as GameShortNames);
     }
 
     if (this.wishedShortNames) {
       SteamChecker.extConsoleOut(
-        `Loaded ${Object.keys(this.wishedShortNames)} wishlist game short names`
+        `Loaded ${
+          Object.keys(this.wishedShortNames).length
+        } wishlist game short names`
       );
     } else {
       this.wishedShortNames = {};
@@ -587,7 +610,6 @@ class SteamChecker {
 
   private async processJSON(data: GameData) {
     SteamChecker.extConsoleOut('Loaded all data.');
-    SteamChecker.extConsoleOut(data);
 
     let storageGameData = await this.getStorageData([
       'numgames',
@@ -620,12 +642,17 @@ class SteamChecker {
         data.steamAppList
       ),
     ]);
+  }
 
-    this.highlightGames();
+  private setElementStyle(
+    element: HTMLElement,
+    extraStyles: Partial<CSSStyleDeclaration>
+  ) {
+    Object.assign(element.style, extraStyles);
   }
 
   private addClassToElements(
-    gameWrapperElement: HTMLElement,
+    gameElement: SteamcheckerFoundGameElement,
     classType: 'owned' | 'wished'
   ) {
     if (!this.webpageSelectorSettings) {
@@ -634,10 +661,13 @@ class SteamChecker {
       return;
     }
 
-    let highlightElement: HTMLElement = gameWrapperElement;
-    if (this.webpageSelectorSettings.highlight) {
-      let checkingElement = gameWrapperElement.querySelector<HTMLElement>(
-        this.webpageSelectorSettings.highlight
+    // FIXME: selectorSettings and figure out which settings are needed
+    // store selectorSettings in this.webpageGames array?
+
+    let highlightElement: HTMLElement = gameElement.wrapper;
+    if (gameElement.selectorSettings.highlight) {
+      let checkingElement = gameElement.wrapper.querySelector<HTMLElement>(
+        gameElement.selectorSettings.highlight
       );
 
       if (!checkingElement) {
@@ -650,63 +680,40 @@ class SteamChecker {
     }
 
     highlightElement.classList.add(
-      `steamchecker-${classType}${this.webpageSelectorSettings.class_type}`
+      `steamchecker-${classType}${gameElement.selectorSettings.class_type}`
     );
 
-    if (this.webpageSelectorSettings.star && this.svgAssets) {
-      let starElement = gameWrapperElement.querySelector(
-        this.webpageSelectorSettings.star
+    if (gameElement.selectorSettings.star && this.svgAssets) {
+      let starElement = gameElement.wrapper.querySelector(
+        gameElement.selectorSettings.star
       );
       if (starElement) {
         starElement.append(this.svgAssets.star);
       }
     }
 
-    // if (this.currentMode == HighlightMode.BUNDLE) {
-    //   $('[' + gamenameAttr + "='" + machineNames[webIndex] + "']")
-    //     .closest('.dd-image-box')
-    //     .addClass(addedClass);
-    // } else if (this.currentMode == HighlightMode.KEYS) {
-    //   var keyElement = $(
-    //     "td.game-name h4[title='" + machineNames[webIndex] + "']"
-    //   ).closest('tr');
-    //   if (addedClass == 'ownedGame') {
-    //     keyElement.addClass('ownedKey');
-    //     keyElement
-    //       .find('.hb-gift')
-    //       .append(
-    //         '<img src="' +
-    //           chrome.extension.getURL('star.png') +
-    //           '" class="star"/>'
-    //       );
-    //   } else {
-    //     keyElement.addClass('wishedKey');
-    //   }
-    // } else if (
-    //   this.currentMode == HighlightMode.STORE ||
-    //   this.currentMode == HighlightMode.SEARCH
-    // ) {
-    //   $('.entity-block-container')
-    //     .filter(function () {
-    //       return $('.entity-title', this).text() == machineNames[webIndex];
-    //     })
-    //     .addClass(addedClass);
-    //   $(
-    //     ".entity-container .entity-title[title='" +
-    //       machineNames[webIndex] +
-    //       "']"
-    //   )
-    //     .closest('.entity-container')
-    //     .addClass(addedClass);
-    // } else if (this.currentMode == HighlightMode.CHOICE) {
-    //   $('.content-choice')
-    //     .filter(function () {
-    //       return (
-    //         $('.content-choice-title', this).text() == machineNames[webIndex]
-    //       );
-    //     })
-    //     .addClass(addedClass);
-    // }
+    // set any extra necessary styles
+    if (gameElement.selectorSettings.extra_styles) {
+      Object.keys(gameElement.selectorSettings.extra_styles).forEach(
+        (selector) => {
+          if (selector === ':scope') {
+            this.setElementStyle(
+              gameElement.wrapper,
+              gameElement.selectorSettings.extra_styles![selector]
+            );
+          } else {
+            gameElement.wrapper
+              .querySelectorAll<HTMLElement>(selector)
+              .forEach((selectedElem) => {
+                this.setElementStyle(
+                  selectedElem,
+                  gameElement.selectorSettings.extra_styles![selector]
+                );
+              });
+          }
+        }
+      );
+    }
   }
 
   //show owned and wishlisted games
@@ -724,11 +731,11 @@ class SteamChecker {
     // check if names are the same
     this.webpageGames.forEach((foundGameElement) => {
       if (this.ownedShortNames![foundGameElement.name]) {
-        this.addClassToElements(foundGameElement.wrapper, 'owned');
+        this.addClassToElements(foundGameElement, 'owned');
       }
 
       if (this.wishedShortNames![foundGameElement.name]) {
-        this.addClassToElements(foundGameElement.wrapper, 'wished');
+        this.addClassToElements(foundGameElement, 'wished');
       }
     });
 
@@ -748,6 +755,20 @@ class SteamChecker {
       );
       json = await response.json();
 
+      let foundPageRegex = Object.keys(json).find((pageRegEx) => {
+        if (window.location.pathname.match(pageRegEx)) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (!foundPageRegex) {
+        throw new Error('Not yet scanning on this URL pattern');
+      }
+
+      this.webpageSelectorSettings = json[foundPageRegex];
+
       SteamChecker.extConsoleOut('Fetched game selectors');
     } catch (err: any) {
       SteamChecker.extConsoleOut(err);
@@ -765,127 +786,56 @@ class SteamChecker {
 
     this.timeStartPerformance = Date.now();
 
-    let foundGameWrappers = document.querySelectorAll<HTMLElement>(
-      this.webpageSelectorSettings.game_wrapper
-    );
+    this.webpageGames = [];
 
-    if (foundGameWrappers.length === 0) {
-      SteamChecker.extConsoleOut('No games found on this page');
+    this.webpageSelectorSettings.forEach((selectorSettings) => {
+      let foundGameWrappers = document.querySelectorAll<HTMLElement>(
+        selectorSettings.game_wrapper
+      );
 
-      return;
-    }
-
-    foundGameWrappers.forEach((wrapper) => {
-      if (!this.webpageSelectorSettings) {
-        SteamChecker.extConsoleOut('Webpage selector data not loaded.');
+      if (foundGameWrappers.length === 0) {
+        SteamChecker.extConsoleOut('No games found on this page');
 
         return;
       }
 
-      let titleElem = wrapper.querySelector<HTMLElement>(
-        this.webpageSelectorSettings.title
-      );
-      if (!titleElem) return;
+      foundGameWrappers.forEach((wrapper) => {
+        let titleElem = wrapper.querySelector<HTMLElement>(
+          selectorSettings.title
+        );
+        if (!titleElem) return;
 
-      let gameTitle: string | null | undefined;
+        let gameTitle: string | null | undefined;
 
-      if (this.webpageSelectorSettings.title_attribute) {
-        gameTitle = titleElem
-          .getAttribute(this.webpageSelectorSettings.title_attribute)
-          ?.trim();
-      } else {
-        gameTitle = titleElem.textContent?.trim();
-      }
+        if (selectorSettings.title_attribute) {
+          gameTitle = titleElem
+            .getAttribute(selectorSettings.title_attribute)
+            ?.trim();
+        } else {
+          gameTitle = titleElem.textContent?.trim();
+        }
 
-      if (!gameTitle) return;
+        if (!gameTitle) return;
 
-      //this.machineNames.push(gameTitle.replace(/(["'])/, '\\$1'));
-      this.webpageGames.push({
-        name: this.formatGameTitle(gameTitle),
-        wrapper: wrapper,
+        //this.machineNames.push(gameTitle.replace(/(["'])/, '\\$1'));
+        this.webpageGames.push({
+          name: this.formatGameTitle(gameTitle),
+          wrapper: wrapper,
+          selectorSettings: selectorSettings,
+        });
       });
     });
 
     SteamChecker.extConsoleOut(
-      `(TIME) Webpage Processing: ${Date.now() - this.timeStartPerformance}ms`
+      `Games found on page: ${this.webpageGames.map((g) => g.name).join(', ')}`
     );
 
-    // if (this.currentMode == HighlightMode.BUNDLE) {
-    //   //get the Humble Bundle game machine names
-    //   $('.dd-image-box-figure[' + gamenameAttr + ']').each(function () {
-    //     //$(".dd-image-box-caption").each(function() {
-    //     var title = $(this).attr(gamenameAttr);
-    //     //var title = $(this).text();
-
-    //     if (title != '') {
-    //       machineNames.push(title.replace(/(["'])/, '\\$1'));
-    //       webNames.push(this.formatGameTitle(title));
-    //       htmlElements.push($(this).closest('.dd-image-box'));
-    //     }
-    //   });
-    // } else if (this.currentMode == HighlightMode.KEYS) {
-    //   $('.unredeemed-keys-table tr .game-name h4').each(function () {
-    //     var title = $(this).attr('title');
-
-    //     if (title != '') {
-    //       machineNames.push(title.replace(/(["'])/, '\\$1'));
-    //       webNames.push(title.toLowerCase().replace(/[\W_]/g, ''));
-    //     }
-    //   });
-    // } else if (
-    //   this.currentMode == HighlightMode.STORE ||
-    //   this.currentMode == HighlightMode.SEARCH
-    // ) {
-    //   $(
-    //     '.entity-block-container .entity-title, .entity-container .entity-title'
-    //   ).each(function () {
-    //     var title = $(this).attr('title');
-    //     if (!title || title == '') {
-    //       title = $(this).text();
-    //     }
-
-    //     if (title != '') {
-    //       machineNames.push(title.replace(/(["'])/, '\\$1'));
-    //       webNames.push(title.toLowerCase().replace(/[\W_]/g, ''));
-    //       htmlElements.push(
-    //         $(this).closest('.entity-block-container, .entity-container')
-    //       );
-    //     }
-    //   });
-    // } else if (this.currentMode == HighlightMode.CHOICE) {
-    //   $('.content-choice .content-choice-title').each(function () {
-    //     var title = $(this).text();
-
-    //     if (title != '') {
-    //       machineNames.push(title.replace(/(["'])/, '\\$1'));
-    //       webNames.push(title.toLowerCase().replace(/[\W_]/g, ''));
-    //       htmlElements.push($(this).closest('.content-choice'));
-    //     }
-    //   });
-    // } else {
-    //   SteamChecker.extConsoleOut('Not yet scanning on this URL');
-    // }
+    SteamChecker.extConsoleOut(
+      `(TIME) Webpage Processing: ${Date.now() - this.timeStartPerformance}ms`
+    );
   }
 }
 
 (() => {
   new SteamChecker();
-
-  // TODO: Map these to the /selectors/ request
-
-  // let page = window.location.pathname;
-  // if (page.startsWith('/books') || page.startsWith('/monthly')) {
-  //   SteamChecker.extConsoleOut('Not yet scanning on this URL');
-  //   return;
-  // }
-
-  // if (page.startsWith('/home/keys')) {
-  //   new SteamChecker(HighlightMode.KEYS);
-  // } else if (page.startsWith('/store')) {
-  //   new SteamChecker(HighlightMode.STORE);
-  // } else if (page.startsWith('/store/search')) {
-  //   new SteamChecker(HighlightMode.SEARCH);
-  // } else if (page.startsWith('/subscription/home')) {
-  //   new SteamChecker(HighlightMode.CHOICE);
-  // }
 })();

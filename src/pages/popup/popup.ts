@@ -1,5 +1,7 @@
-import { TabMessage, type TabResponse } from '../types/messages';
-import type { SteamIDSettings } from '../types/steamid-settings';
+import './popup.css';
+
+import { TabMessage, type TabResponse } from '../../types/messages';
+import type { SteamIDSettings } from '../../types/steamid-settings';
 
 (() => {
   function saveSteamID() {
@@ -25,6 +27,7 @@ import type { SteamIDSettings } from '../types/steamid-settings';
           return;
         }
 
+        // FIXME: Doesn't run this unless the active tab has the content script loaded?
         chrome.tabs.sendMessage(
           currentTabID,
           { message: TabMessage.REMOVE_GAME_DATA },

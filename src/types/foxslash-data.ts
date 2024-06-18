@@ -53,11 +53,21 @@ export type SteamcheckerWebpageSelectors = {
 
   /** appended after the classname. e.g. `"Game"` or `"Key"` */
   class_type: string;
+
+  extra_styles: Record<string, Partial<CSSStyleDeclaration>> | null;
 };
+
+// keyed by the URL blob
 export type FoxslashResponseModeWebpageSelectors = Record<
   string,
-  SteamcheckerWebpageSelectors
+  SteamcheckerWebpageSelectors[]
 >;
+
+export type SteamcheckerFoundGameElement = {
+  name: string;
+  wrapper: HTMLElement;
+  selectorSettings: SteamcheckerWebpageSelectors;
+};
 
 // save data types
 export type SESD_Details = {
