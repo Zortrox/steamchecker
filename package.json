@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "vite --mode development",
     "build": "tsc && vite build",
+    "postbuild": "cd dist && zip -r ../extension.zip *",
     "preview": "vite preview",
     "validate-manifest": "web-ext lint",
     "postversion": "bun run build"
