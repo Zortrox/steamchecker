@@ -4,9 +4,8 @@ const { version } = packageJson;
 
 const [major, minor, patch, label = '0'] = version
   // can only contain digits, dots, or dash
-  .replace(/[^\d.-]+/g, '')
-  // split into version parts
-  .split(/[.-]/);
+  .replace(/[^\d.]+/g, '')
+  .split(/[.]/);
 
 export default defineManifest(async (env) => ({
   manifest_version: 3,
