@@ -14,7 +14,7 @@
   "private": true,
   "scripts": {
     "dev": "vite --mode development",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && bun postbuildfixes.ts",
     "postbuild": "cd dist && zip -r ../extension.zip *",
     "preview": "vite preview",
     "validate-manifest": "web-ext lint",
