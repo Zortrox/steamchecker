@@ -1,0 +1,97 @@
+name: Publish to stores
+
+# Uploads a GitHub release's zips to the Chrome Web Store, Firefox Add-ons and
+# Edge Add-ons. Called by build-extension.yml after a stable release, or run by
+# hand to retry one store. A store whose secrets aren't set is skipped.
+# See docs/publishing.md.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, e.g. v1.2.0
+        type: string
+        required: true
+      store:
+        description: Which store
+        type: choice
+        options: [all, chrome, firefox, edge]
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: ${{ matrix.store }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        store: [chrome, firefox, edge]
+    env:
+      TAG: ${{ inputs.tag }}
+      SELECTED: ${{ inputs.store || 'all' }}
+      GH_TOKEN: ${{ github.token }}
+      # Chrome Web Store
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      # Firefox Add-ons (web-ext reads these)
+      WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+      WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      # Edge Add-ons
+      EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+      EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+      EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+    steps:
+      - name: Check store and credentials
+        id: gate
+        run: |
+          if [ "$SELECTED" != all ] && [ "$SELECTED" != "${{ matrix.store }}" ]; then
+            echo "Not selected; skipping."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          case "${{ matrix.store }}" in
+            chrome)  key="$CWS_REFRESH_TOKEN" ;;
+            firefox) key="$WEB_EXT_API_SECRET" ;;
+            edge)    key="$EDGE_API_KEY" ;;
+          esac
+          if [ -z "$key" ]; then
+            echo "::warning::${{ matrix.store }} secrets are not set; skipping."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.gate.outputs.run == 'true'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Download release zips
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern 'steamchecker-*.zip'
+          mv steamchecker-chrome.zip extension-chrome.zip
+          mv steamchecker-firefox.zip extension-firefox.zip
+          mv steamchecker-source.zip extension-source.zip
+
+      - name: Publish
+        if: steps.gate.outputs.run == 'true'
+        env:
+          RELEASE_VERSION: ${{ inputs.tag }}
+        run: bun run publish:${{ matrix.store }}

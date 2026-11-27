@@ -95,6 +95,13 @@
     ],
     "@semantic-release/npm",
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "bun run build && bun run package:source",
+        "successCmd": "echo \"version=${nextRelease.version}\" >> \"$GITHUB_OUTPUT\" && echo \"channel=${nextRelease.channel || 'latest'}\" >> \"$GITHUB_OUTPUT\""
+      }
+    ],
+    [
       "@semantic-release/github",
       {
         "assets": [
@@ -107,6 +114,11 @@
             "path": "extension-firefox.zip",
             "label": "Firefox Extension",
             "name": "steamchecker-firefox.zip"
+          },
+          {
+            "path": "extension-source.zip",
+            "label": "Source code (for AMO review)",
+            "name": "steamchecker-source.zip"
           }
         ]
       }

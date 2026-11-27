@@ -82,6 +82,7 @@ slash included) and answers anything else with a plain 400.
 | --- | --- |
 | Chrome, any non-store build (`dev`, `build:local`, `build:e2e`) | `https://ceggehhaldhcfgpgkfjlmppeagigocck.chromiumapp.org/` |
 | Chrome Web Store | `https://<store extension id>.chromiumapp.org/` |
+| Edge Add-ons | `https://<Edge extension id>.chromiumapp.org/` |
 | Firefox, dev and AMO | `https://5eae38a3832e255a62f0aa2e16bf8632bc085ffd.extensions.allizom.org/` (sha1 of `@steamchecker`) |
 
 Non-store builds get a fixed ID from the public `key` in `manifest.config.ts`.

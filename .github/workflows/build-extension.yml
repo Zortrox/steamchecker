@@ -9,8 +9,13 @@ on:
 jobs:
   version_and_build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      channel: ${{ steps.release.outputs.channel }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       # semantic-release 26 needs Node >= 26.13
       - uses: actions/setup-node@v5
@@ -38,7 +43,10 @@ jobs:
       - name: Browser tests (built extension in Chromium)
         run: bun run test:e2e
 
+      # Bumps package.json, rebuilds the zips with that version (prepareCmd in
+      # .releaserc), tags, and attaches the zips to a GitHub release.
       - name: Automated Versioning and Release
+        id: release
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -51,3 +59,14 @@ jobs:
           path: |
             extension-chrome.zip
             extension-firefox.zip
+            extension-source.zip
+
+  # Stable releases from main go to the stores; beta prereleases don't, since
+  # their 4-part manifest version would block the next stable one.
+  publish:
+    needs: version_and_build
+    if: needs.version_and_build.outputs.version != '' && needs.version_and_build.outputs.channel == 'latest'
+    uses: ./.github/workflows/publish-stores.yml
+    with:
+      tag: v${{ needs.version_and_build.outputs.version }}
+    secrets: inherit

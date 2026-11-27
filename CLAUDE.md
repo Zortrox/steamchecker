@@ -54,6 +54,9 @@ Local foxslash runs on Sail at `http://localhost:8003`. Build against it with
   (Chrome 130+ CSP workaround; keep it unless crxjs adds an option for it) and
   writes the Firefox copy `<outDir>-firefox/`. Both builds are MV3.
 - `docs/remote-config.md`: JSON contract foxslash serves.
+- `docs/publishing.md`: release flow, store upload workflow
+  (`.github/workflows/publish-stores.yml`, `scripts/publish-*.ts`) and the
+  secrets each store needs.
 - `docs/sign-in.md`: sign-in handoff and authenticated API contract, plus the
   redirect URL allowlist.
 

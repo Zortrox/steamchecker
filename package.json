@@ -4,9 +4,11 @@
   "devDependencies": {
     "@crxjs/vite-plugin": "^3.0.0",
     "@playwright/test": "^1.65.1",
+    "@semantic-release/exec": "^7.1.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/bun": "^1.4.5",
     "@types/chrome": "^0.3.8",
+    "chrome-webstore-upload": "^6.0.1",
     "conventional-changelog-conventionalcommits": "^10.4.1",
     "happy-dom": "^21.0.4",
     "semantic-release": "^26.0.1",
@@ -31,7 +33,11 @@
     "check:config": "bun scripts/check-remote-config.ts",
     "test:e2e": "bun run build:e2e && playwright test",
     "build:e2e": "vite build --mode e2e --outDir dist-e2e && bun postbuildfixes.ts dist-e2e",
-    "build:local": "vite build --mode foxslash-local --outDir dist-local && bun postbuildfixes.ts dist-local"
+    "build:local": "vite build --mode foxslash-local --outDir dist-local && bun postbuildfixes.ts dist-local",
+    "package:source": "rm -f extension-source.zip && git ls-files -z | xargs -0 zip -q extension-source.zip",
+    "publish:chrome": "bun scripts/publish-chrome.ts extension-chrome.zip",
+    "publish:edge": "bun scripts/publish-edge.ts extension-chrome.zip",
+    "publish:firefox": "rm -rf release-firefox && unzip -q extension-firefox.zip -d release-firefox && web-ext sign --source-dir release-firefox --channel listed --upload-source-code extension-source.zip --approval-timeout 0 --artifacts-dir web-ext-artifacts"
   },
   "type": "module"
 }
