@@ -30,12 +30,27 @@ describe("normalizeTitle", () => {
 describe("matchPage", () => {
   it.each([
     ["/home/library", "library"],
+    ["/home/library/c7a551c0-0c4f-4397-adc6-2cf8d85c4fe2", "library-bundle"],
     ["/games/survival-fittest", "bundle"],
     ["/software/some-bundle", "bundle"],
     ["/membership/december-2026", "membership"],
     ["/store", "home-and-store"],
     ["/store/satisfactory", "home-and-store"],
     ["/", "home-and-store"],
+    ["/on-sale", "home-and-store"],
+    ["/bestselling", "home-and-store"],
+    ["/new-releases", "home-and-store"],
+    ["/pre-order", "home-and-store"],
+    ["/books-store", "home-and-store"],
+    ["/software-store", "home-and-store"],
+    ["/deals-under-5", "home-and-store"],
+    ["/deals-under-10", "home-and-store"],
+    ["/great-on-handhelds", "home-and-store"],
+    ["/rpg", "home-and-store"],
+    ["/all-genres", "home-and-store"],
+    ["/nintendo-switch-2", "home-and-store"],
+    ["/steam/", "home-and-store"],
+    ["/all-platforms", "home-and-store"],
     ["/home/keys", "keys-legacy"],
   ])("%s -> %s", (path, id) => {
     expect(matchPage(config, path)?.id).toBe(id);
@@ -44,6 +59,9 @@ describe("matchPage", () => {
   it("does not scan unrelated pages", () => {
     expect(matchPage(config, "/home/purchases")).toBeUndefined();
     expect(matchPage(config, "/home/library/content/abc")).toBeUndefined();
+    expect(matchPage(config, "/about")).toBeUndefined();
+    expect(matchPage(config, "/steamworks")).toBeUndefined();
+    expect(matchPage(config, "/on-sale/extra")).toBeUndefined();
   });
 });
 
@@ -63,6 +81,23 @@ describe("fixtures", () => {
     ]);
   });
 
+  it("library bundle page finds every Steam key", () => {
+    const games = scan(
+      "humble-library-bundle-detail.html",
+      "/home/library/c7a551c0-0c4f-4397-adc6-2cf8d85c4fe2",
+    );
+    expect(games.map((g) => g.name)).toEqual([
+      "arzette the jewel of faramore",
+      "dishonored",
+      "blazing chrome",
+      "the elder scrolls iii morrowind goty",
+      "pennys big breakaway",
+      "hyperbolica",
+      "nickelodeon allstar brawl 2",
+    ]);
+    games.forEach((g) => expect(g.wrapper.classList.contains("bg-card")).toBe(true));
+  });
+
   it("library Bundles tab finds nothing to check", () => {
     expect(scan("humble-library-bundles.html", "/home/library")).toHaveLength(0);
   });
@@ -74,6 +109,21 @@ describe("fixtures", () => {
     expect(names).toHaveLength(12);
     expect(names).toContain("palworld");
     expect(names).toContain("subnautica below zero");
+  });
+
+  it("store page reads list rows without their rank number", () => {
+    const games = scan("humble-store.html", "/store");
+    expect(games.map((g) => g.name)).toEqual([
+      "control resonant",
+      "bonelab",
+      "satisfactory",
+      "for the king ii",
+      "warhammer 40000 space marine 2 2year anniversary edition",
+      "final fantasy vii remake intergrade",
+      "halloween the game",
+      "red dead redemption 2",
+    ]);
+    expect(new Set(games.map((g) => g.wrapper)).size).toBe(games.length);
   });
 
   it("home page finds store products but skips bundle cards", () => {

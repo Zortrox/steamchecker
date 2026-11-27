@@ -34,7 +34,11 @@ store release.
 ## Unverified entries
 
 `membership` was written without a rendered Choice page (the page needs
-JavaScript to render games). `home-and-store` is tested against the home page
-cards only; `/store` itself renders client-side and wasn't captured. `keys-legacy` targets the old keys table and may
+JavaScript to render games). `home-and-store` covers the home page, `/store` and the
+store pages in Humble's Store menu (`/on-sale`, `/bestselling`, genre and
+platform pages); their paths are listed one by one in the rule, so a new menu
+entry needs adding there. All of them use the same `product-card` markup,
+captured in `humble-store.html` (list rows have a rank number, which the
+title selector skips). `keys-legacy` targets the old keys table and may
 be dead if `/home/keys` now redirects to the library. Check both against a live
 page.

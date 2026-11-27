@@ -145,6 +145,69 @@ test("library page: Steam rows are labeled", async ({ context, extensionId }, te
   await page.screenshot({ path: testInfo.outputPath("library.png") });
 });
 
+test("library bundle page: Steam keys are labeled", async ({ context, extensionId }, testInfo) => {
+  const url = "https://www.humblebundle.com/home/library/c7a551c0-0c4f-4397-adc6-2cf8d85c4fe2";
+  await mockFoxslash(context, {
+    owned: [{ appid: 205100, name: "Dishonored" }],
+    wishlist: [{ appid: 1256230, name: "Hyperbolica" }],
+  });
+  await serveFixture(context, url, "humble-library-bundle-detail.html");
+  await signInDirectly(context, extensionId);
+
+  const page = await context.newPage();
+  await page.goto(url);
+  await waitForScan(page);
+
+  await expect(page.locator(".steamchecker-ownedLibraryRow")).toHaveCount(1);
+  await expect(page.locator(".steamchecker-wishedLibraryRow")).toHaveCount(1);
+  await expect(page.locator(".steamchecker-wishedLibraryRow > .steamchecker-badge")).toHaveCount(1);
+
+  const owned = await styleOf(page, ".steamchecker-ownedLibraryRow");
+  expect(owned.labelAfter).toBe('"In Steam library"');
+
+  await page.screenshot({ path: testInfo.outputPath("library-bundle.png"), fullPage: true });
+});
+
+test("store listing: grid cards and list rows are checked", async ({ context, extensionId }, testInfo) => {
+  await mockFoxslash(context, {
+    owned: [
+      { appid: 526870, name: "Satisfactory" },
+      { appid: 1151340, name: "Halloween: The Game" },
+    ],
+    wishlist: [{ appid: 1174180, name: "Red Dead Redemption 2" }],
+  });
+  for (const path of ["/store", "/on-sale"]) {
+    await serveFixture(context, `https://www.humblebundle.com${path}`, "humble-store.html");
+  }
+  await signInDirectly(context, extensionId);
+
+  for (const path of ["/store", "/on-sale"]) {
+    const page = await context.newPage();
+    await page.goto(`https://www.humblebundle.com${path}`);
+    await waitForScan(page);
+
+    await expect(page.locator(".steamchecker-ownedCard")).toHaveCount(2);
+    await expect(page.locator(".steamchecker-wishedCard")).toHaveCount(1);
+    await expect(page.locator(".steamchecker-wishedCard .steamchecker-badge")).toHaveCount(1);
+    await page.screenshot({ path: testInfo.outputPath(`store${path.replace(/\//g, "-")}.png`), fullPage: true });
+    await page.close();
+  }
+});
+
+test("indicator comes back if the page removes it", async ({ context, extensionId }) => {
+  await mockFoxslash(context, { owned: [], wishlist: [] });
+  await serveFixture(context, "https://www.humblebundle.com/store", "humble-store.html");
+  await signInDirectly(context, extensionId);
+
+  const page = await context.newPage();
+  await page.goto("https://www.humblebundle.com/store");
+  await waitForScan(page);
+
+  // What a React re-render of <body> does to nodes it didn't create.
+  await page.evaluate(() => document.getElementById("steamchecker-indicator")?.remove());
+  await expect(page.locator("#steamchecker-indicator")).toHaveCount(1);
+});
+
 test("signed-out users see the sign-in status and no highlights", async ({ context }) => {
   await mockFoxslash(context, {
     owned: [{ appid: 1623730, name: "Palworld" }],

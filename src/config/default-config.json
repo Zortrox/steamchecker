@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-11-26-gift-badge",
+  "revision": "2026-11-27-store-pages",
   "pages": [
     {
       "id": "library",
@@ -9,6 +9,20 @@
         {
           "id": "library-purchased",
           "game_wrapper": "a[href^=\"/home/library/content/\"]",
+          "title": ".text-accent",
+          "require": "[aria-label=\"Steam\"]",
+          "badge": ":scope",
+          "class_type": "LibraryRow"
+        }
+      ]
+    },
+    {
+      "id": "library-bundle",
+      "path": "^/home/library/[0-9a-f]{8}-[0-9a-f-]{27}/?$",
+      "targets": [
+        {
+          "id": "library-bundle-keys",
+          "game_wrapper": ".bg-card:has([data-testid=\"platform-icons\"])",
           "title": ".text-accent",
           "require": "[aria-label=\"Steam\"]",
           "badge": ":scope",
@@ -55,12 +69,12 @@
     },
     {
       "id": "home-and-store",
-      "path": "^/(store(/|$)|$)",
+      "path": "^/(store(/|$)|(on-sale|bestselling|new-releases|pre-order|books-store|software-store|deals-under-(5|10)|great-on-handhelds|rpg|virtual-reality|simulation|strategy|action|adventure|indie|racing|all-genres|windows|nintendo-switch(-2)?|steam|mac|linux|all-platforms)/?$|$)",
       "targets": [
         {
           "id": "store-product-cards",
           "game_wrapper": "[data-testid=\"product-card\"]",
-          "title": "[data-testid=\"product-card-footer\"] [data-testid=\"product-link\"]",
+          "title": "[data-testid=\"product-card-footer\"] [data-testid=\"product-link\"] > div > div > div:not([data-testid])",
           "require": "a[href^=\"/store/\"]",
           "badge": "[data-testid=\"product-thumbnail\"]",
           "class_type": "Card"
