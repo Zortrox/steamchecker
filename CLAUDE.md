@@ -4,7 +4,7 @@ Browser extension (Chrome and Firefox, Manifest V3) that grays out games the
 user owns on Steam and highlights wishlisted ones on humblebundle.com. Users
 sign in to their foxslash account (Steam or email/password) from the popup;
 there is no pasted SteamID. Owned games and wishlist come from the account's
-linked Steam account. Everything comes from the foxslash API at `https://www.foxslash.com/api/steamchecker` (`src/lib/foxslash-api.ts`).
+linked Steam account. Everything comes from the foxslash API at `https://foxslash.com/api/steamchecker` (`src/lib/foxslash-api.ts`).
 The old `/apps/steamchecker/*` URLs are only for already-released versions. The foxslash server is a
 separate Laravel repo at `~/projects/foxslash`.
 

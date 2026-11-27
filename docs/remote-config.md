@@ -8,7 +8,7 @@ shipping a new extension build. The same JSON is bundled at
 ## Endpoint
 
 ```
-GET https://www.foxslash.com/api/steamchecker/config/v2
+GET https://foxslash.com/api/steamchecker/config/v2
 ```
 
 It sits next to the rest of the extension's API (`/api/steamchecker/profiles/{profile}/owned`,

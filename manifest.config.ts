@@ -41,7 +41,7 @@ export default defineManifest(async (env) => ({
   permissions: ["storage", "identity"],
 
   host_permissions: [
-    "https://www.foxslash.com/api/steamchecker/*",
+    "https://foxslash.com/api/steamchecker/*",
     ...(env.mode === "foxslash-local" ? [LOCAL_FOXSLASH] : []),
   ],
 
@@ -77,8 +77,8 @@ export default defineManifest(async (env) => ({
     gecko: {
       id: "@steamchecker",
       strict_min_version: "140.0",
-      // The SteamID typed into the popup is sent to foxslash.com to look up
-      // owned and wishlisted games. Firefox requires this disclosure.
+      // The user's foxslash account (and its linked Steam account) is used to
+      // look up owned and wishlisted games. Firefox requires this disclosure.
       data_collection_permissions: {
         required: ["personallyIdentifyingInfo"],
       },

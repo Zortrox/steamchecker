@@ -7,7 +7,7 @@ import type { SteamGame, SteamGameBasic } from "../types/steam-game";
  * local foxslash server).
  */
 export const FOXSLASH_API_URL: string = (
-  import.meta.env.VITE_FOXSLASH_API_URL ?? "https://www.foxslash.com/api/steamchecker"
+  import.meta.env.VITE_FOXSLASH_API_URL ?? "https://foxslash.com/api/steamchecker"
 ).replace(/\/+$/, "");
 
 export type OwnedGamesResponse = {

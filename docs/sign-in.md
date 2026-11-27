@@ -19,7 +19,7 @@ in transit is useless without the verifier only the extension holds.
    `identity.launchWebAuthFlow` (Chrome and Firefox) on:
 
    ```
-   GET https://www.foxslash.com/extension/connect
+   GET https://foxslash.com/extension/connect
        ?redirect_uri=<identity.getRedirectURL()>
        &state=<random>
        &code_challenge=<base64url(sha256(code_verifier))>
@@ -51,7 +51,7 @@ in transit is useless without the verifier only the extension holds.
 5. The extension checks `state`, then exchanges the code:
 
    ```
-   POST https://www.foxslash.com/api/steamchecker/token
+   POST https://foxslash.com/api/steamchecker/token
    Content-Type: application/json
 
    {"code": "...", "code_verifier": "...", "redirect_uri": "...", "device_name": "SteamChecker (Chrome)"}
@@ -110,6 +110,6 @@ Users should be able to see and revoke these tokens from their foxslash
 account settings, the same way as other Sanctum tokens.
 
 CORS: the extension calls these from its background script, which has host
-permission for `https://www.foxslash.com/api/steamchecker/*`, so CORS
+permission for `https://foxslash.com/api/steamchecker/*`, so CORS
 doesn't block them. The public endpoints keep `Access-Control-Allow-Origin: *`
 because the content script still fetches the page config itself.

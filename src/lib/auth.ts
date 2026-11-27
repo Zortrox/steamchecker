@@ -5,7 +5,7 @@
  */
 
 export const FOXSLASH_CONNECT_URL: string =
-  import.meta.env.VITE_FOXSLASH_CONNECT_URL ?? "https://www.foxslash.com/extension/connect";
+  import.meta.env.VITE_FOXSLASH_CONNECT_URL ?? "https://foxslash.com/extension/connect";
 
 export type FoxslashAccount = {
   name: string;

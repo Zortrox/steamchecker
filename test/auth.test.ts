@@ -28,7 +28,7 @@ describe("sign-in helpers", () => {
     const url = new URL(
       buildConnectUrl({ redirectUri: "https://abc.chromiumapp.org/", state: "s", challenge: "c" }),
     );
-    expect(url.origin + url.pathname).toBe("https://www.foxslash.com/extension/connect");
+    expect(url.origin + url.pathname).toBe("https://foxslash.com/extension/connect");
     expect(Object.fromEntries(url.searchParams)).toEqual({
       redirect_uri: "https://abc.chromiumapp.org/",
       state: "s",

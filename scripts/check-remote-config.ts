@@ -14,7 +14,7 @@ const window = new Window();
 Object.assign(globalThis, { document: window.document });
 const { parseConfig } = await import("../src/config/schema");
 
-const url = process.argv[2] ?? "https://www.foxslash.com/api/steamchecker/config/v2";
+const url = process.argv[2] ?? "https://foxslash.com/api/steamchecker/config/v2";
 
 const response = await fetch(url, { headers: { Accept: "application/json" } });
 console.log(`${url} -> HTTP ${response.status}`);

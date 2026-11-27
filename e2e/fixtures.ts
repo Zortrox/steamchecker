@@ -9,7 +9,7 @@ const DIST = join(ROOT, "dist");
 /** Same as dist/ but the sign-in page points at MOCK_CONNECT_ORIGIN (see .env.e2e). */
 export const DIST_E2E = join(ROOT, "dist-e2e");
 export const MOCK_CONNECT_PORT = 47123;
-const FOXSLASH = "https://www.foxslash.com/api/steamchecker";
+const FOXSLASH = "https://foxslash.com/api/steamchecker";
 
 export type MockSteamData = {
   owned: { appid: number; name: string }[];
