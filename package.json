@@ -37,7 +37,8 @@
     "package:source": "rm -f extension-source.zip && git ls-files -z | xargs -0 zip -q extension-source.zip",
     "publish:chrome": "bun scripts/publish-chrome.ts extension-chrome.zip",
     "publish:edge": "bun scripts/publish-edge.ts extension-chrome.zip",
-    "publish:firefox": "rm -rf release-firefox && unzip -q extension-firefox.zip -d release-firefox && web-ext sign --source-dir release-firefox --channel listed --upload-source-code extension-source.zip --approval-timeout 0 --artifacts-dir web-ext-artifacts"
+    "publish:firefox": "rm -rf release-firefox && unzip -q extension-firefox.zip -d release-firefox && web-ext sign --source-dir release-firefox --channel listed --upload-source-code extension-source.zip --approval-timeout 0 --artifacts-dir web-ext-artifacts",
+    "build:unpacked": "vite build --mode unpacked --outDir dist-unpacked && bun postbuildfixes.ts dist-unpacked"
   },
   "type": "module"
 }

@@ -11,12 +11,14 @@ node_modules
 dist
 dist-e2e
 dist-local
+dist-unpacked
 dist-ssr
 *.local
 extension-*.zip
 dist-firefox
 dist-e2e-firefox
 dist-local-firefox
+dist-unpacked-firefox
 
 # Editor directories and files
 .vscode/*

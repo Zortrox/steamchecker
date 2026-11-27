@@ -15,6 +15,10 @@ separate Laravel repo at `~/projects/foxslash`.
 - `bun run test`: Vitest against the HTML fixtures in `test/fixtures`
 - `bun run build`: typecheck, Vite build to `dist/` (Chrome), `postbuildfixes.ts`
   writes `dist-firefox/`, then `extension-chrome.zip` and `extension-firefox.zip`
+- `bun run build:unpacked`: build to `dist-unpacked/` (and `-firefox`) against
+  live foxslash with the fixed dev ID. Load this one by hand to try sign-in:
+  `dist/` is the store build with no `key`, so its unpacked ID is random and
+  foxslash refuses the sign-in redirect.
 - `bun run build:local`: build to `dist-local/` against local foxslash on
   `http://localhost:8003` (Sail). Sign in there with an email/password account
   that has Steam linked; Steam login itself only works on the deployed site.

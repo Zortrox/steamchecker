@@ -72,6 +72,15 @@ async function signIn(): Promise<SignInResponse> {
     return { ok: true, account };
   } catch (err) {
     console.warn("SteamChecker: sign-in failed", err);
+    if (errorMessage(err).includes("could not be loaded")) {
+      // foxslash answers 400 to a redirect URL it doesn't allowlist, which is
+      // what an unpacked store build (random extension ID) runs into.
+      console.warn(
+        `SteamChecker: foxslash may not allow ${chrome.identity.getRedirectURL()}; ` +
+          "load dist-unpacked/ (fixed dev ID) or add it to STEAMCHECKER_REDIRECT_URIS.",
+      );
+      return { ok: false, error: "Couldn't open the foxslash sign-in page. Try again later." };
+    }
     return { ok: false, error: errorMessage(err) };
   }
 }

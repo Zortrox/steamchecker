@@ -10,6 +10,7 @@ bun install
 bun run dev      # load dist/ as an unpacked extension
 bun run test
 bun run build    # extension-chrome.zip and extension-firefox.zip
+bun run build:unpacked  # dist-unpacked/: live foxslash, fixed dev ID for sign-in
 bun run lint:firefox
 ```
 
