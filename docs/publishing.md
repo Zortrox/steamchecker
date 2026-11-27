@@ -104,14 +104,31 @@ in the README.
 
 ### Edge Add-ons
 
-| Secret | Where it comes from |
+| Secret | Value |
 | --- | --- |
-| `EDGE_PRODUCT_ID` | Partner Center, the extension's Overview page ("Product ID") |
-| `EDGE_CLIENT_ID` | Partner Center, Publish API page, after enabling the API |
-| `EDGE_API_KEY` | Same page; API keys expire, so renew it when uploads start failing with 401 |
+| `EDGE_PRODUCT_ID` | The extension's Product ID (a GUID) |
+| `EDGE_CLIENT_ID` | Publish API client ID |
+| `EDGE_API_KEY` | Publish API key |
 
-The extension must already exist in Partner Center (the first submission is
-manual).
+1. **Developer account.** Register for the Microsoft Edge program in
+   [Partner Center](https://partner.microsoft.com/dashboard/microsoftedge/)
+   with a Microsoft account (free).
+2. **First submission, by hand.** The API can only update an extension that
+   already exists. Create a new extension, upload `extension-chrome.zip` from
+   a release (the Chrome build runs as is in Edge), fill in the listing
+   (description, 300x300 logo, screenshots, a privacy policy URL, since the
+   extension uses the foxslash account and Steam ID) and submit. Review takes
+   up to 7 business days.
+3. **Product ID.** On the extension's Overview page in Partner Center. This is
+   the GUID, not the 32-letter extension ID.
+4. **API credentials.** Partner Center, Microsoft Edge, **Publish API**. Enable
+   the API if asked, then **Create API credentials**. Copy the client ID and
+   API key. The key expires after 72 days; when uploads start failing with a
+   401, create a new key and update `EDGE_API_KEY`.
+
+The Edge extension ID (32 letters, shown under Extension identity in Partner
+Center and on `edge://extensions` after installing from the store) is what
+goes in the foxslash redirect allowlist below.
 
 ### Adding the secrets to GitHub
 
