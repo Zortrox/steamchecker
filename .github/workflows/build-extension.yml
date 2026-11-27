@@ -30,6 +30,9 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          # Keep in step with "Building from source" in README.md (AMO review).
+          bun-version: 1.4.5
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile

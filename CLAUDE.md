@@ -15,6 +15,9 @@ separate Laravel repo at `~/projects/foxslash`.
 - `bun run test`: Vitest against the HTML fixtures in `test/fixtures`
 - `bun run build`: typecheck, Vite build to `dist/` (Chrome), `postbuildfixes.ts`
   writes `dist-firefox/`, then `extension-chrome.zip` and `extension-firefox.zip`
+- `./build-for-review.sh`: install and build as AMO reviewers do (README,
+  "Building from source"). Keep the Bun version there, in the workflows and
+  the reviewer notes in step.
 - `bun run build:unpacked`: build to `dist-unpacked/` (and `-firefox`) against
   live foxslash with the fixed dev ID. Load this one by hand to try sign-in:
   `dist/` is the store build with no `key`, so its unpacked ID is random and
