@@ -76,6 +76,9 @@ jobs:
     needs: version_and_build
     if: needs.version_and_build.outputs.version != '' && needs.version_and_build.outputs.channel == 'latest'
     uses: ./.github/workflows/publish-stores.yml
+    permissions:
+      contents: read
+      id-token: write
     with:
       tag: v${{ needs.version_and_build.outputs.version }}
     secrets: inherit

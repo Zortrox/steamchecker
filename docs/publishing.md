@@ -51,38 +51,58 @@ no personal access token is needed.
 
 ### Chrome Web Store
 
+The upload runs as a Google service account. GitHub signs in to Google with
+its own OIDC token (Workload Identity Federation), so there is no refresh
+token or key file to store or rotate.
+
 | Secret | Value |
 | --- | --- |
 | `CWS_EXTENSION_ID` | The 32-letter item ID |
 | `CWS_PUBLISHER_ID` | Your publisher ID |
-| `CWS_CLIENT_ID` | OAuth client ID |
-| `CWS_CLIENT_SECRET` | OAuth client secret |
-| `CWS_REFRESH_TOKEN` | Refresh token for the publisher account |
+| `GCP_SERVICE_ACCOUNT` | The service account's email |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/<project number>/locations/global/workloadIdentityPools/github/providers/steamchecker` |
 
 1. **IDs.** Open the [developer dashboard](https://chrome.google.com/webstore/devconsole)
    signed in as the account that owns SteamChecker. The URL is
    `.../devconsole/<publisher id>/...`; opening the item adds
    `/<extension id>/...` after it.
-2. **Google Cloud project.** In the [Cloud console](https://console.cloud.google.com/),
-   create a project (any name), then under APIs & Services, Library, enable
-   **Chrome Web Store API**.
-3. **Consent screen.** APIs & Services, OAuth consent screen (Google Auth
-   platform): type External, any app name, your email as support and developer
-   contact. Then under Audience, click **Publish app** so it is "In production".
-   A project left in "Testing" issues refresh tokens that expire after 7 days.
-   Google won't make you verify the app for your own use; you'll just see an
-   "unverified app" warning when you sign in.
-4. **OAuth client.** Credentials (Clients), Create client, type **Web
-   application**, authorized redirect URI
-   `https://developers.google.com/oauthplayground`. Copy the client ID and
-   secret.
-5. **Refresh token.** Open the [OAuth Playground](https://developers.google.com/oauthplayground).
-   Gear icon, tick "Use your own OAuth credentials", paste the client ID and
-   secret. In "Input your own scopes" enter
-   `https://www.googleapis.com/auth/chromewebstore`, click **Authorize APIs**,
-   sign in as the publisher account and allow it (Advanced, Go to app, past the
-   unverified warning). Click **Exchange authorization code for tokens** and
-   copy the refresh token.
+2. **Google Cloud project.** Create a project in the
+   [Cloud console](https://console.cloud.google.com/) (any name). Then, with
+   the [gcloud CLI](https://cloud.google.com/sdk/docs/install) signed in as
+   you (`gcloud auth login`):
+
+   ```bash
+   PROJECT_ID=your-project-id
+   PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+   SA=steamchecker-publisher@$PROJECT_ID.iam.gserviceaccount.com
+
+   gcloud services enable chromewebstore.googleapis.com iamcredentials.googleapis.com sts.googleapis.com --project $PROJECT_ID
+
+   gcloud iam service-accounts create steamchecker-publisher --project $PROJECT_ID
+
+   gcloud iam workload-identity-pools create github --project $PROJECT_ID --location global --display-name GitHub
+
+   gcloud iam workload-identity-pools providers create-oidc steamchecker --project $PROJECT_ID --location global --workload-identity-pool github --issuer-uri https://token.actions.githubusercontent.com --attribute-mapping 'google.subject=assertion.sub,attribute.repository=assertion.repository' --attribute-condition "assertion.repository=='Zortrox/steamchecker'"
+
+   gcloud iam service-accounts add-iam-policy-binding $SA --project $PROJECT_ID --role roles/iam.workloadIdentityUser --member "principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/Zortrox/steamchecker"
+
+   echo "GCP_SERVICE_ACCOUNT=$SA"
+   echo "GCP_WORKLOAD_IDENTITY_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/providers/steamchecker"
+   ```
+
+   The attribute condition means only workflows in this repo can use the
+   pool. The service account needs no IAM roles in the project.
+3. **Give it the publisher.** In the developer dashboard, Account, add the
+   service account's email under **Service accounts**. A publisher can have
+   one service account, and it can manage every item the publisher owns.
+
+To publish from your own machine instead, grant yourself
+`roles/iam.serviceAccountTokenCreator` on the service account and set
+`CWS_ACCESS_TOKEN` before `bun run publish:chrome`:
+
+```bash
+export CWS_ACCESS_TOKEN=$(gcloud auth print-access-token --impersonate-service-account=$SA --scopes=https://www.googleapis.com/auth/chromewebstore)
+```
 
 ### Firefox Add-ons
 
@@ -138,7 +158,7 @@ per name. Or with the GitHub CLI, which prompts for the value so it stays out
 of your shell history:
 
 ```bash
-gh secret set CWS_REFRESH_TOKEN --repo Zortrox/steamchecker
+gh secret set CWS_PUBLISHER_ID --repo Zortrox/steamchecker
 ```
 
 ## Sign-in redirect URLs
