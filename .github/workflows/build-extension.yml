@@ -9,6 +9,12 @@ on:
 jobs:
   version_and_build:
     runs-on: ubuntu-latest
+    # semantic-release uses the workflow's own token: push the tag, create the
+    # release, comment on released issues and PRs.
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     outputs:
       version: ${{ steps.release.outputs.version }}
       channel: ${{ steps.release.outputs.channel }}
@@ -49,7 +55,7 @@ jobs:
         id: release
         if: github.event_name == 'push'
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bunx semantic-release
 
       - name: Save files to Artifact

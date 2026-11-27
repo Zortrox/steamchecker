@@ -46,7 +46,8 @@ bun run publish:edge
 
 Add these under the repo's Settings, Secrets and variables, Actions. A store
 with no secrets is skipped with a warning, so stores can be set up one at a
-time. `GH_TOKEN` (already set) must be a token that can create releases.
+time. The release itself uses the workflow's built-in `GITHUB_TOKEN`, so
+no personal access token is needed.
 
 ### Chrome Web Store
 
