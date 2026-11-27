@@ -84,6 +84,7 @@ class PageWatcher {
 }
 
 class SteamChecker {
+  private indicator: HTMLElement | null = null;
   private indicatorStatusElement: HTMLElement | null = null;
 
   private config: SteamcheckerConfig | undefined;
@@ -141,7 +142,21 @@ class SteamChecker {
     this.indicatorStatusElement.className = "steamchecker-status";
 
     indicator.append(img, this.indicatorStatusElement);
-    document.body.appendChild(indicator);
+    this.indicator = indicator;
+    this.attachIndicator();
+
+    // Humble's React app can drop nodes it didn't render (a hydration retry on
+    // /store does), so put the indicator back whenever it goes missing.
+    new MutationObserver(() => this.attachIndicator()).observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  private attachIndicator() {
+    if (this.indicator && !this.indicator.isConnected && document.body) {
+      document.body.appendChild(this.indicator);
+    }
   }
 
   private setStatus(status: IndicatorStatus) {
