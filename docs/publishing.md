@@ -50,29 +50,57 @@ time. `GH_TOKEN` (already set) must be a token that can create releases.
 
 ### Chrome Web Store
 
-| Secret | Where it comes from |
+| Secret | Value |
 | --- | --- |
-| `CWS_EXTENSION_ID` | The 32-letter item ID in the developer dashboard URL |
-| `CWS_PUBLISHER_ID` | Your publisher ID, also in the developer dashboard URL |
-| `CWS_CLIENT_ID` | Google Cloud OAuth client (Desktop app) with the Chrome Web Store API enabled |
-| `CWS_CLIENT_SECRET` | Same OAuth client |
-| `CWS_REFRESH_TOKEN` | From signing in once with that client as the publisher account |
+| `CWS_EXTENSION_ID` | The 32-letter item ID |
+| `CWS_PUBLISHER_ID` | Your publisher ID |
+| `CWS_CLIENT_ID` | OAuth client ID |
+| `CWS_CLIENT_SECRET` | OAuth client secret |
+| `CWS_REFRESH_TOKEN` | Refresh token for the publisher account |
 
-The steps for the OAuth client and refresh token are in
-<https://github.com/fregante/chrome-webstore-upload-keys>.
+1. **IDs.** Open the [developer dashboard](https://chrome.google.com/webstore/devconsole)
+   signed in as the account that owns SteamChecker. The URL is
+   `.../devconsole/<publisher id>/...`; opening the item adds
+   `/<extension id>/...` after it.
+2. **Google Cloud project.** In the [Cloud console](https://console.cloud.google.com/),
+   create a project (any name), then under APIs & Services, Library, enable
+   **Chrome Web Store API**.
+3. **Consent screen.** APIs & Services, OAuth consent screen (Google Auth
+   platform): type External, any app name, your email as support and developer
+   contact. Then under Audience, click **Publish app** so it is "In production".
+   A project left in "Testing" issues refresh tokens that expire after 7 days.
+   Google won't make you verify the app for your own use; you'll just see an
+   "unverified app" warning when you sign in.
+4. **OAuth client.** Credentials (Clients), Create client, type **Web
+   application**, authorized redirect URI
+   `https://developers.google.com/oauthplayground`. Copy the client ID and
+   secret.
+5. **Refresh token.** Open the [OAuth Playground](https://developers.google.com/oauthplayground).
+   Gear icon, tick "Use your own OAuth credentials", paste the client ID and
+   secret. In "Input your own scopes" enter
+   `https://www.googleapis.com/auth/chromewebstore`, click **Authorize APIs**,
+   sign in as the publisher account and allow it (Advanced, Go to app, past the
+   unverified warning). Click **Exchange authorization code for tokens** and
+   copy the refresh token.
 
 ### Firefox Add-ons
 
-| Secret | Where it comes from |
+| Secret | Value |
 | --- | --- |
-| `AMO_JWT_ISSUER` | <https://addons.mozilla.org/developers/addon/api/key/>, "JWT issuer" |
-| `AMO_JWT_SECRET` | Same page, "JWT secret" |
+| `AMO_JWT_ISSUER` | "JWT issuer", like `user:12345678:123` |
+| `AMO_JWT_SECRET` | "JWT secret" (shown once) |
 
-The add-on ID is `@steamchecker` (`browser_specific_settings.gecko.id`), so
-uploads go to the existing listing. AMO asks for source code because Vite
-bundles the scripts; the workflow uploads `steamchecker-source.zip` (every
-tracked file at the release, with the bumped `package.json`). Reviewers build it
-with the steps under "Building from source" in the README.
+Sign in to <https://addons.mozilla.org/developers/addon/api/key/> as the
+account that owns SteamChecker, accept the agreement if asked, and click
+**Generate new credentials**. Copy both values right away; the secret isn't
+shown again (generate new ones if it's lost).
+
+The add-on ID is `@steamchecker` (`browser_specific_settings.gecko.id`, the
+same as past releases), so uploads go to the existing listing. AMO asks for
+source code because Vite bundles the scripts; the workflow uploads
+`steamchecker-source.zip` (every tracked file at the release, with the bumped
+`package.json`). Reviewers build it with the steps under "Building from source"
+in the README.
 
 ### Edge Add-ons
 
@@ -84,6 +112,16 @@ with the steps under "Building from source" in the README.
 
 The extension must already exist in Partner Center (the first submission is
 manual).
+
+### Adding the secrets to GitHub
+
+Repo Settings, Secrets and variables, Actions, **New repository secret**, once
+per name. Or with the GitHub CLI, which prompts for the value so it stays out
+of your shell history:
+
+```bash
+gh secret set CWS_REFRESH_TOKEN --repo Zortrox/steamchecker
+```
 
 ## Sign-in redirect URLs
 
