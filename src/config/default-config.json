@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "revision": "2026-11-26-gift-badge",
+  "pages": [
+    {
+      "id": "library",
+      "path": "^/home/library/?$",
+      "targets": [
+        {
+          "id": "library-purchased",
+          "game_wrapper": "a[href^=\"/home/library/content/\"]",
+          "title": ".text-accent",
+          "require": "[aria-label=\"Steam\"]",
+          "badge": ":scope",
+          "class_type": "LibraryRow"
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "path": "^/(games|software|books)/[^/]+",
+      "targets": [
+        {
+          "id": "bundle-items",
+          "game_wrapper": "[data-testid=\"bundle-item-card\"]",
+          "title": "[data-testid=\"product-thumbnail\"] img",
+          "title_attribute": "alt",
+          "require": "[aria-label=\"Steam\"]",
+          "badge": "[data-testid=\"product-thumbnail\"]",
+          "class_type": "Card"
+        }
+      ]
+    },
+    {
+      "id": "membership",
+      "path": "^/membership",
+      "targets": [
+        {
+          "id": "membership-items",
+          "game_wrapper": "[data-testid=\"bundle-item-card\"]",
+          "title": "[data-testid=\"product-thumbnail\"] img",
+          "title_attribute": "alt",
+          "badge": "[data-testid=\"product-thumbnail\"]",
+          "class_type": "Card"
+        },
+        {
+          "id": "membership-product-cards",
+          "game_wrapper": "[data-testid=\"product-card\"]",
+          "title": "[data-testid=\"product-card-footer\"] [data-testid=\"product-link\"]",
+          "require": "a[href^=\"/store/\"]",
+          "badge": "[data-testid=\"product-thumbnail\"]",
+          "class_type": "Card"
+        }
+      ]
+    },
+    {
+      "id": "home-and-store",
+      "path": "^/(store(/|$)|$)",
+      "targets": [
+        {
+          "id": "store-product-cards",
+          "game_wrapper": "[data-testid=\"product-card\"]",
+          "title": "[data-testid=\"product-card-footer\"] [data-testid=\"product-link\"]",
+          "require": "a[href^=\"/store/\"]",
+          "badge": "[data-testid=\"product-thumbnail\"]",
+          "class_type": "Card"
+        }
+      ]
+    },
+    {
+      "id": "keys-legacy",
+      "path": "^/home/keys",
+      "targets": [
+        {
+          "id": "keys-table",
+          "game_wrapper": ".unredeemed-keys-table tr",
+          "title": ".game-name h4",
+          "badge": ".hb-gift",
+          "class_type": "Key"
+        }
+      ]
+    }
+  ]
+}

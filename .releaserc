@@ -99,9 +99,14 @@
       {
         "assets": [
           {
-            "path": "extension.zip",
+            "path": "extension-chrome.zip",
             "label": "Chrome Extension",
-            "name": "steamchecker.zip"
+            "name": "steamchecker-chrome.zip"
+          },
+          {
+            "path": "extension-firefox.zip",
+            "label": "Firefox Extension",
+            "name": "steamchecker-firefox.zip"
           }
         ]
       }

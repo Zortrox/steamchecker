@@ -1,86 +1,78 @@
-import './popup.css';
+import "./popup.css";
 
-import { TabMessage, type TabResponse } from '../../types/messages';
-import type { SteamIDSettings } from '../../types/steamid-settings';
+import type { FoxslashAccount } from "../../lib/auth";
+import { TabMessage, sendToBackground } from "../../types/messages";
 
-(() => {
-  function saveSteamID() {
-    let steamID = document.querySelector<HTMLInputElement>('#steamid')?.value;
-    let isID64 = document.querySelector<HTMLInputElement>('#id64')?.checked;
+const $ = <T extends HTMLElement>(selector: string) =>
+  document.querySelector<T>(selector)!;
 
-    if (!steamID || isID64 == null) {
-      return;
-    }
+const signedOut = $("#signed-out");
+const signedIn = $("#signed-in");
+const signInButton = $<HTMLButtonElement>("#signInButton");
+const statusMessage = $("#status-message");
 
-    let steamIDSettings: SteamIDSettings = {
-      steamid: steamID,
-      id64: isID64,
-    };
+function showStatus(text: string) {
+  statusMessage.textContent = text;
+}
 
-    storageType.set(steamIDSettings, () => {
-      console.log('Saved SteamID: ' + steamIDSettings.steamid);
-      console.log('SteamID64: ' + steamIDSettings.id64);
+function render(account: FoxslashAccount | null) {
+  signedOut.hidden = account !== null;
+  signedIn.hidden = account === null;
+  if (!account) return;
 
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        let currentTabID = tabs[0]?.id;
-        if (currentTabID == null) {
-          return;
-        }
+  $("#account-name").textContent = account.name;
+  $("#account-steam").textContent = account.steam_name
+    ? `Steam: ${account.steam_name}`
+    : account.steam_id
+      ? `Steam ID ${account.steam_id}`
+      : "No Steam account linked on foxslash";
 
-        // FIXME: Doesn't run this unless the active tab has the content script loaded?
-        chrome.tabs.sendMessage(
-          currentTabID,
-          { message: TabMessage.REMOVE_GAME_DATA },
-          function (response?: TabResponse) {
-            if (!response) return;
+  const avatar = $<HTMLImageElement>("#account-avatar");
+  avatar.hidden = !account.avatar_url;
+  if (account.avatar_url) avatar.src = account.avatar_url;
+}
 
-            console.log(response.message);
-          }
-        );
-      });
-
-      let saveMessage =
-        document.querySelector<HTMLSpanElement>('#saveMessage span');
-      if (!saveMessage) return;
-
-      saveMessage.classList.toggle('fade-out');
-      saveMessage.offsetLeft; // trigger reflow
-      saveMessage.classList.toggle('fade-out');
-    });
+/** Drop cached game names and page config in the Humble tab, then reload it. */
+async function refreshActiveTab(): Promise<boolean> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id == null) return false;
+  try {
+    await chrome.tabs.sendMessage(tab.id, { message: TabMessage.REMOVE_GAME_DATA });
+  } catch {
+    return false; // not a Humble tab
   }
+  await chrome.tabs.reload(tab.id);
+  return true;
+}
 
-  let storageType = chrome.storage.local;
+signInButton.addEventListener("click", async () => {
+  signInButton.disabled = true;
+  showStatus("Finish signing in in the foxslash window...");
 
-  if (typeof chrome.storage.sync !== 'undefined') {
-    storageType = chrome.storage.sync;
+  // In Chrome the popup may close while the sign-in window is open. The
+  // background script finishes the sign-in either way.
+  const result = await sendToBackground({ type: "signIn" });
+  signInButton.disabled = false;
+
+  if (result.ok) {
+    render(result.account);
+    showStatus("Signed in. Humble tabs reload with your games.");
+  } else {
+    showStatus(result.error);
   }
+});
 
-  document.querySelector('#saveButton')?.addEventListener('click', () => {
-    saveSteamID();
-  });
+$("#signOutButton").addEventListener("click", async () => {
+  await sendToBackground({ type: "signOut" });
+  render(null);
+  showStatus("Signed out.");
+});
 
-  storageType.get(['steamid', 'id64'], (obj) => {
-    if (!obj) {
-      return;
-    }
+$("#refreshButton").addEventListener("click", async () => {
+  const refreshed = await refreshActiveTab();
+  showStatus(refreshed ? "Reloading with fresh data..." : "Open a Humble Bundle tab first.");
+});
 
-    if (obj['steamid']) {
-      let inputSteamID = document.querySelector<HTMLInputElement>('#steamid');
-      if (inputSteamID) {
-        inputSteamID.value = obj['steamid'];
-      }
-    }
-    if (obj['id64']) {
-      let inputID64 = document.querySelector<HTMLInputElement>('#id64');
-      if (inputID64) {
-        inputID64.checked = true;
-      }
-    }
-  });
+$("#version span").textContent = chrome.runtime.getManifest().version;
 
-  let manifest = chrome.runtime.getManifest();
-  let elemVersion = document.querySelector('#version');
-  if (elemVersion) {
-    elemVersion.textContent = `Version: ${manifest.version}`;
-  }
-})();
+sendToBackground({ type: "getAccount" }).then(({ account }) => render(account));

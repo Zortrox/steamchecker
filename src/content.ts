@@ -1,195 +1,254 @@
-// content.js
+import "./assets/styles/steamcheckerStyles.css";
+import svgGift from "./assets/images/gift.svg?raw";
 
-import './assets/styles/steamcheckerStyles.css';
-import svgStar from './assets/images/star.svg?raw';
-
-import type {
-  FoxslashResponseAliases,
-  FoxslashResponseModeWebpageSelectors,
-  FoxslashResponseOwnedGames,
-  FoxslashResponseOwnedGamesWithAliases,
-  FoxslashResponseSteamAppList,
-  FoxslashResponseWishlist,
-  SESD_Details,
-  SteamcheckerExtensionSaveData,
-  SteamcheckerFoundGameElement,
-  SteamcheckerWebpageSelectors,
-} from './types/foxslash-data';
-import type { GameData, GameShortNames } from './types/game-data';
-import { TabMessage, type TabResponse } from './types/messages';
+import { clearConfigCache, loadConfig } from "./config/load-config";
+import type { PageRule, SteamcheckerConfig } from "./config/schema";
+import { AUTH_STORAGE_KEY } from "./lib/auth";
+import {
+  applyHighlight,
+  matchPage,
+  normalizeTitle,
+  scanPage,
+} from "./lib/page-scanner";
+import { fetchAliases, fetchAppList } from "./lib/foxslash-api";
+import type { SESD_Details, SteamcheckerExtensionSaveData } from "./types/foxslash-data";
+import type { GameShortNames } from "./types/game-data";
+import { TabMessage, sendToBackground, type TabResponse } from "./types/messages";
 import {
   isSteamGameArray,
   type SteamGame,
   type SteamGameBasic,
-} from './types/steam-game';
-import type { SteamIDSettings } from './types/steamid-settings';
+} from "./types/steam-game";
 
-class SteamCheckerMutationListener {
+/** Bump when `normalizeTitle` changes so cached short names are rebuilt. */
+const SHORTNAME_FORMAT = "v2";
+
+/** Attribute set on each processed wrapper, holding the title it was checked as. */
+const PROCESSED_ATTR = "data-steamchecker";
+
+type IndicatorStatus = "loading" | "good" | "error" | "not-scanning" | "signed-out";
+
+const STATUS_TITLES: Record<IndicatorStatus, string> = {
+  loading: "Loading...",
+  good: "Everything looks good",
+  error: "Error loading data",
+  "not-scanning": "Not scanning on this URL",
+  "signed-out": "Sign in to foxslash from the SteamChecker toolbar button",
+};
+
+function log(msg: unknown) {
+  if (typeof msg === "string") {
+    console.log("Steam Library Checker: " + msg);
+  } else {
+    console.log("Steam Library Checker:", msg);
+  }
+}
+
+/**
+ * Humble's site is a Next.js app: pages change without a reload and content
+ * streams in after load. This watches the whole document, debounced, and
+ * calls back on any DOM change or URL change.
+ */
+class PageWatcher {
   private timeout: number | undefined;
+  private observer: MutationObserver;
 
-  private config = { subtree: true, childList: true };
-
-  private observer = new MutationObserver((mutationsList) => {
-    mutationsList.forEach((mutation) => {
-      if (
-        mutation.type === 'childList' &&
-        mutation.target.nodeName.toLowerCase() !== 'i'
-      ) {
-        this.nodeAdded();
-      }
+  constructor(
+    private onChange: () => void,
+    private delayMs = 150,
+  ) {
+    this.observer = new MutationObserver((mutations) => {
+      const relevant = mutations.some((m) =>
+        Array.from(m.addedNodes).some(
+          (node) =>
+            !(node instanceof Element && node.classList.contains("steamchecker-badge")),
+        ),
+      );
+      if (relevant) this.schedule();
     });
-  });
-
-  private nodeAddedCallback: () => void;
-
-  constructor(observerCallback: () => void) {
-    this.nodeAddedCallback = observerCallback;
   }
 
-  private waitForAddedNode(parentNode: string) {
-    let elem = document.querySelector(parentNode);
-
-    if (elem) {
-      this.nodeAdded();
-      this.observer.observe(elem, this.config);
-    } else {
-      new MutationObserver(() => {
-        let elem = document.querySelector(parentNode);
-        if (!elem) return;
-
-        this.disconnect();
-        this.observer.observe(elem, this.config);
-      }).observe(document, {
-        subtree: true,
-        childList: true,
-      });
-    }
+  start() {
+    this.observer.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+    });
+    window.addEventListener("popstate", () => this.schedule());
+    this.schedule();
   }
 
-  private nodeAdded() {
-    let waitTime = 100;
-
+  private schedule() {
     clearTimeout(this.timeout);
-
-    this.timeout = window.setTimeout(() => {
-      this.nodeAddedCallback();
-    }, waitTime);
-  }
-
-  public observe(parentNode: string) {
-    this.waitForAddedNode(parentNode);
-  }
-
-  public disconnect() {
-    this.observer.disconnect();
+    this.timeout = window.setTimeout(() => this.onChange(), this.delayMs);
   }
 }
 
 class SteamChecker {
-  private storageTypeUserData:
-    | chrome.storage.SyncStorageArea
-    | chrome.storage.LocalStorageArea;
+  private indicatorStatusElement: HTMLElement | null = null;
 
-  private webpageSelectorSettings: SteamcheckerWebpageSelectors[] | undefined;
+  private config: SteamcheckerConfig | undefined;
+  private currentPath: string | undefined;
+  private currentPage: PageRule | undefined;
 
-  // arrays for games currently on webpage
-  private webpageGames: SteamcheckerFoundGameElement[] = [];
-  // private machineNames: string[] = [];
-
-  // arrays for game names + aliases
   private ownedShortNames: GameShortNames | undefined;
   private wishedShortNames: GameShortNames | undefined;
 
-  private svgAssets: Record<'star', HTMLElement> | undefined;
+  private badgeTemplate: Element | undefined;
 
-  // timing
-  private timeStartPerformance: number = 0;
+  private timeStartPerformance = 0;
 
   constructor() {
-    if (typeof chrome.storage.sync !== 'undefined') {
-      this.storageTypeUserData = chrome.storage.sync;
-    } else {
-      this.storageTypeUserData = chrome.storage.local;
-    }
-
     this.initialize();
   }
 
   private async initialize() {
-    this.loadSvgAssets();
-    await this.fetchWebpageSelectors();
-    this.getUserData();
+    this.setupIndicator();
+    this.setStatus("loading");
     this.setupListeners();
-  }
+    this.loadSvgAssets();
 
-  public static extConsoleOut(msg: string | Record<string, any>) {
-    if (typeof msg === 'string') {
-      console.log('Steam Library Checker: ' + msg);
-    } else {
-      console.log('Steam Library Checker:');
-      console.log(msg);
+    try {
+      const { config, source } = await loadConfig();
+      this.config = config;
+      log(`Using page config "${config.revision}" (${source})`);
+
+      const userStatus = await this.loadUserData();
+      if (userStatus !== "ok") {
+        this.setStatus(userStatus);
+        return;
+      }
+
+      new PageWatcher(() => this.onPageChange()).start();
+    } catch (err) {
+      log(err);
+      this.setStatus("error");
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Indicator
+
+  private setupIndicator() {
+    const indicator = document.createElement("div");
+    indicator.id = "steamchecker-indicator";
+    indicator.title = "SteamChecker";
+
+    const img = document.createElement("img");
+    img.src = chrome.runtime.getURL("icons/icon.png");
+    img.alt = "SteamChecker";
+
+    this.indicatorStatusElement = document.createElement("div");
+    this.indicatorStatusElement.className = "steamchecker-status";
+
+    indicator.append(img, this.indicatorStatusElement);
+    document.body.appendChild(indicator);
+  }
+
+  private setStatus(status: IndicatorStatus) {
+    const el = this.indicatorStatusElement;
+    if (!el) return;
+
+    el.className = `steamchecker-status steamchecker-status--${status}`;
+    el.title = STATUS_TITLES[status];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Setup
 
   private setupListeners() {
     chrome.runtime.onMessage.addListener(
       (request, _, sendResponse: (response: TabResponse) => void) => {
         if (request.message === TabMessage.REMOVE_GAME_DATA) {
-          this.removeAllStorageData().then(() => {
-            sendResponse({ message: 'Game data removed' });
+          Promise.all([this.removeAllStorageData(), clearConfigCache()]).then(() => {
+            sendResponse({ message: "Game data removed" });
           });
+          return true;
         }
-      }
+        return undefined;
+      },
     );
-  }
 
-  private loadSvgAssets() {
-    let parser = new DOMParser();
-    this.svgAssets = {
-      star: parser.parseFromString(svgStar, 'image/svg+xml').documentElement,
-    };
-
-    this.svgAssets.star.classList.add('steamchecker-star');
-  }
-
-  private async getStorageData<T extends readonly (keyof SESD_Details)[]>(
-    values: T
-  ): Promise<SteamcheckerExtensionSaveData<(typeof values)[number]>> {
-    return new Promise((resolve, reject) => {
-      chrome.storage.local.get(values, (storageData) => {
-        if (chrome.runtime.lastError) {
-          reject(
-            chrome.runtime.lastError.message ??
-              'Error getting chrome.storage data'
-          );
-          return;
-        }
-
-        resolve(storageData as any);
-      });
+    // Signing in or out from the popup changes whose games apply; start over.
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && AUTH_STORAGE_KEY in changes) {
+        window.location.reload();
+      }
     });
+  }
+
+  /** The flat gold badge with the present icon. */
+  private loadSvgAssets() {
+    const gift = new DOMParser().parseFromString(svgGift, "image/svg+xml").documentElement;
+    gift.classList.add("steamchecker-gift");
+
+    const badge = document.createElement("span");
+    badge.className = "steamchecker-badge";
+    badge.setAttribute("role", "img");
+    badge.setAttribute("aria-label", "On your Steam wishlist");
+    badge.title = "On your Steam wishlist";
+    badge.append(document.importNode(gift, true));
+    this.badgeTemplate = badge;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Page scanning
+
+  private onPageChange() {
+    if (!this.config) return;
+
+    if (window.location.pathname !== this.currentPath) {
+      this.currentPath = window.location.pathname;
+      this.currentPage = matchPage(this.config, this.currentPath);
+      this.setStatus(this.currentPage ? "good" : "not-scanning");
+      if (this.currentPage) log(`Scanning with page rule "${this.currentPage.id}"`);
+    }
+
+    if (this.currentPage) this.highlightGames(this.currentPage);
+  }
+
+  private highlightGames(page: PageRule) {
+    if (!this.ownedShortNames || !this.wishedShortNames) return;
+
+    this.timeStartPerformance = Date.now();
+    let checked = 0;
+
+    for (const game of scanPage(document, page)) {
+      if (game.wrapper.getAttribute(PROCESSED_ATTR) === game.name) continue;
+      game.wrapper.setAttribute(PROCESSED_ATTR, game.name);
+      checked++;
+
+      if (this.ownedShortNames[game.name]) {
+        applyHighlight(game, "owned", this.badgeTemplate);
+      }
+      if (this.wishedShortNames[game.name]) {
+        applyHighlight(game, "wished", this.badgeTemplate);
+      }
+    }
+
+    if (checked > 0) {
+      log(`(TIME) Checked ${checked} games: ${Date.now() - this.timeStartPerformance} ms`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Storage
+
+  private async getStorageData<T extends (keyof SESD_Details)[]>(
+    values: T,
+  ): Promise<SteamcheckerExtensionSaveData<T[number]>> {
+    return (await chrome.storage.local.get(values)) as SteamcheckerExtensionSaveData<
+      T[number]
+    >;
   }
 
   private async setStorageData(values: {
     [key in keyof SESD_Details]?: SESD_Details[key];
   }) {
-    return new Promise<void>((resolve, reject) => {
-      chrome.storage.local.set(values, () => {
-        if (chrome.runtime.lastError) {
-          reject(
-            chrome.runtime.lastError.message ??
-              'Error saving chrome.storage data'
-          );
-          return;
-        }
-
-        resolve();
-      });
-    });
+    await chrome.storage.local.set(values);
   }
 
   private async removeAllStorageData() {
-    let allKeys: Record<keyof SESD_Details, true> = {
+    const allKeys: Record<keyof SESD_Details, true> = {
       // old data
       numgames: true,
       shortnames: true,
@@ -202,349 +261,145 @@ class SteamChecker {
       owned_shortnames: true,
     };
 
-    return this.removeStorageData(allKeys);
+    await chrome.storage.local.remove(Object.keys(allKeys));
+    log("Game data removed.");
   }
 
-  private async removeStorageData(keys: {
-    [key in keyof SESD_Details]?: true;
-  }) {
-    return new Promise<void>((resolve, reject) => {
-      chrome.storage.local.remove(Object.keys(keys), () => {
-        if (chrome.runtime.lastError) {
-          reject(
-            chrome.runtime.lastError.message ??
-              'Error removing chrome.storage data'
-          );
-          return;
-        }
+  // ---------------------------------------------------------------------------
+  // Foxslash data
 
-        SteamChecker.extConsoleOut('Game data removed.');
+  private async loadUserData(): Promise<"ok" | "signed-out" | "error"> {
+    this.timeStartPerformance = Date.now();
 
-        resolve();
-      });
-    });
-  }
-
-  private getUserData() {
-    this.storageTypeUserData.get(['steamid', 'id64'], (obj) => {
-      this.processUserData(obj as SteamIDSettings);
-    });
-  }
-
-  private async fetchOwnedGames(
-    steamID: string,
-    id64: boolean
-  ): Promise<FoxslashResponseOwnedGames> {
-    let params = new URLSearchParams({
-      steamid: steamID,
-    });
-
-    if (id64) {
-      params.append('id64', '1');
-    }
-
-    return fetch(
-      `https://www.foxslash.com/apps/steamchecker/owned/?${params.toString()}`
-    )
-      .then((d) => d.json())
-      .then((response: FoxslashResponseOwnedGamesWithAliases) => {
-        if (response.message) {
-          throw new Error(response.message);
-        }
-
-        if (!response.response) {
-          throw new Error('No steam games fetched');
-        }
-
-        SteamChecker.extConsoleOut(
-          `(TIME) Steam Games: ${Date.now() - this.timeStartPerformance} ms`
-        );
-
-        return response.response;
-      })
-      .catch((err) => {
-        SteamChecker.extConsoleOut(err);
-
-        return {
-          game_count: 0,
-          games: [],
-        };
-      });
-  }
-
-  private async fetchWishedGames(
-    steamID: string,
-    id64: boolean
-  ): Promise<string[]> {
-    let params = new URLSearchParams({
-      id: steamID,
-      type: id64 ? 'id64' : 'id',
-    });
-
-    return fetch(
-      `https://www.foxslash.com/apps/steamchecker/wishlist/?${params.toString()}`
-    )
-      .then((d) => d.json())
-      .then((response: FoxslashResponseWishlist) => {
-        if (response.message) {
-          throw new Error(response.message);
-        }
-
-        SteamChecker.extConsoleOut(
-          `(TIME) Steam Wishlist: ${Date.now() - this.timeStartPerformance} ms`
-        );
-
-        return response.wishlist;
-      })
-      .catch((err) => {
-        SteamChecker.extConsoleOut(err);
-
-        return [];
-      });
-  }
-
-  private async fetchAliases(): Promise<FoxslashResponseAliases> {
-    if (!this.webpageSelectorSettings) {
-      SteamChecker.extConsoleOut('Webpage selector data not loaded.');
-
-      return {};
-    }
-
-    //get php arguments of game names
-    var phpArgs: {
-      type: 'all' | 'some';
-      names?: string[];
-    } = {
-      type: 'all',
-    };
-
-    // IDEA: Possibly fix this in the future; currently doesn't work with mutation observer
-    // if (this.webpageSelectorSettings.partial_aliases === true) {
-    //   phpArgs.type = 'some';
-    //   phpArgs.names = [];
-    //   this.webpageGames.forEach((game) => {
-    //     phpArgs.names!.push(game.name);
-    //   });
-    // }
-
-    return fetch('https://www.foxslash.com/apps/steamchecker/aliases/', {
-      method: 'POST',
-      body: JSON.stringify(phpArgs),
-    })
-      .then((d) => d.json())
-      .then((response: FoxslashResponseAliases) => {
-        if (response.message) {
-          SteamChecker.extConsoleOut(response.message);
-          return {};
-        }
-
-        SteamChecker.extConsoleOut(
-          `(TIME) Steam Aliases: ${Date.now() - this.timeStartPerformance} ms`
-        );
-
-        return response;
-      })
-      .catch(() => {
-        SteamChecker.extConsoleOut('Unable to load aliases');
-
-        return {};
-      });
-  }
-
-  private async fetchAppList(): Promise<SteamGameBasic[]> {
-    return fetch('https://www.foxslash.com/apps/steamchecker/appList.json')
-      .then((d) => d.json())
-      .then((response: FoxslashResponseSteamAppList) => {
-        if (response.message) {
-        }
-
-        SteamChecker.extConsoleOut(
-          `(TIME) Steam App List: ${Date.now() - this.timeStartPerformance} ms`
-        );
-
-        return response.applist.apps;
-      })
-      .catch((err) => {
-        SteamChecker.extConsoleOut(err);
-
-        return [];
-      });
-  }
-
-  private async processUserData(steamIDSettings: SteamIDSettings) {
-    if (!steamIDSettings.steamid) {
-      SteamChecker.extConsoleOut('No SteamID Saved');
-      return;
-    }
-
-    if (steamIDSettings.id64 === undefined) {
-      SteamChecker.extConsoleOut('Unable to determine steamID format');
-      return;
-    }
-
-    if (!this.webpageSelectorSettings) {
-      SteamChecker.extConsoleOut('Webpage selector data not loaded.');
-
-      return;
-    }
-
-    // GET WEB GAME DATA
-    let hasNonObservers = false;
-    this.webpageSelectorSettings.forEach((selectorSettings) => {
-      if (selectorSettings.observer) {
-        let mutationKeysTable = new SteamCheckerMutationListener(() => {
-          this.processWebpageData();
-          this.highlightGames();
-        });
-        mutationKeysTable.observe(selectorSettings.observer);
-      } else {
-        hasNonObservers = true;
-      }
-    });
-    // process all non-observer data at the same time
-    if (hasNonObservers) {
-      this.processWebpageData();
-    }
-
-    this.timeStartPerformance = Date.now(); // start performance timer for fetching
-
-    let [owned, wishlist, aliases, appList] = await Promise.all([
-      this.fetchOwnedGames(steamIDSettings.steamid, steamIDSettings.id64),
-      this.fetchWishedGames(steamIDSettings.steamid, steamIDSettings.id64),
-      this.fetchAliases(), // TODO: Ensure webNames is set
-      this.fetchAppList(),
+    const [userGames, aliases, appList] = await Promise.all([
+      sendToBackground({ type: "getUserGames" }),
+      this.timed("Steam Aliases", fetchAliases(), {}),
+      this.timed("Steam App List", fetchAppList(), { apps: [] }),
     ]);
 
-    let fetchedData: GameData = {
-      userOwnedGames: owned,
-      userWishlistedGames: wishlist,
-      gameAliases: aliases,
-      steamAppList: appList,
-    };
+    if (userGames.status === "signed-out") {
+      log("Not signed in to foxslash");
+      return "signed-out";
+    }
+    if (userGames.status === "error") {
+      log(`Unable to load Steam data: ${userGames.error}`);
+      return "error";
+    }
+    userGames.problems.forEach((problem) => log(`Unable to load ${problem}`));
+    log(`(TIME) Steam Games and Wishlist: ${Date.now() - this.timeStartPerformance} ms`);
 
-    await this.processJSON(fetchedData);
+    const owned = userGames.owned ?? { steam_id: "", game_count: 0, games: [] };
+    const wishlistIds = (userGames.wishlist?.appids ?? []).map(String);
 
-    this.highlightGames();
+    log("Loaded all data.");
+
+    const storageGameData = await this.getStorageData([
+      "numgames",
+      "owned_hash",
+      "wishlist_hash",
+    ]);
+
+    // remove pre-2024 storage data if it's still around
+    if (storageGameData.numgames !== undefined) {
+      await this.removeAllStorageData();
+      storageGameData.owned_hash = undefined;
+      storageGameData.wishlist_hash = undefined;
+    }
+
+    await Promise.all([
+      this.processDataOwnedGames(owned.games, storageGameData.owned_hash, aliases),
+      this.processDataWishlistGames(
+        wishlistIds,
+        storageGameData.wishlist_hash,
+        aliases,
+        appList.apps,
+      ),
+    ]);
+
+    return "ok";
   }
+
+  private async timed<T>(label: string, request: Promise<T>, fallback: T): Promise<T> {
+    try {
+      const result = await request;
+      log(`(TIME) ${label}: ${Date.now() - this.timeStartPerformance} ms`);
+      return result;
+    } catch (err) {
+      log(`Unable to load ${label}: ${err instanceof Error ? err.message : String(err)}`);
+      return fallback;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Short names
 
   private loadAliases(
     gameArray: string[] | SteamGame[],
-    aliasArray: Record<string, string[]>
+    aliasArray: Record<string, string[]>,
   ) {
-    var addNames: Set<string> = new Set();
+    const ids = new Set(
+      isSteamGameArray(gameArray)
+        ? gameArray.map((game) => String(game.appid))
+        : gameArray.map(String),
+    );
 
-    Object.keys(aliasArray).forEach((appID) => {
-      if (isSteamGameArray(gameArray)) {
-        gameArray.some((game) => {
-          if (game.appid + '' !== appID) {
-            return;
-          }
+    const addNames = new Set<string>();
+    for (const [appID, aliases] of Object.entries(aliasArray)) {
+      if (!ids.has(appID) || !Array.isArray(aliases)) continue;
+      aliases.forEach((alias) => addNames.add(normalizeTitle(alias)));
+    }
 
-          // push and return true to immediately break
-          aliasArray[appID]!.forEach((alias) => {
-            addNames.add(alias);
-          });
-          return true;
-        });
-      } else {
-        gameArray.some((gameID) => {
-          if (gameID + '' !== appID) {
-            return;
-          }
-
-          // push and return true to immediately break
-          aliasArray[appID]!.forEach((alias) => {
-            addNames.add(alias);
-          });
-          return true;
-        });
-      }
-    });
-
-    if (addNames.size === 0) {
-      SteamChecker.extConsoleOut(`No aliases found for this set of games.`);
-    } else {
-      SteamChecker.extConsoleOut(
-        `Aliases loaded: ${Array.from(addNames).join(', ')}`
-      );
+    if (addNames.size > 0) {
+      log(`Aliases loaded: ${Array.from(addNames).join(", ")}`);
     }
 
     return addNames;
   }
 
-  /**
-   * Remove everything except alphanumeric and shrink multiple spaces
-   *
-   * @param title
-   * @returns
-   */
-  private formatGameTitle(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ');
-  }
-
   private hashGames(games: string[]) {
-    let stringNames = games.join(',');
+    const stringNames = SHORTNAME_FORMAT + ":" + games.join(",");
 
     let hash = 0;
-    if (stringNames.length === 0) return hash;
-
     for (let i = 0; i < stringNames.length; i++) {
-      let chr = stringNames.charCodeAt(i);
-      hash = (hash << 5) - hash + chr;
+      hash = (hash << 5) - hash + stringNames.charCodeAt(i);
       hash |= 0; // Convert to 32bit integer
     }
-
     return hash;
+  }
+
+  private toShortNameMap(names: string[] | undefined) {
+    return names?.reduce((map, name) => {
+      map[name] = true;
+      return map;
+    }, {} as GameShortNames);
   }
 
   private async processDataOwnedGames(
     ownedGames: SteamGame[],
     ownedHash: number | undefined,
-    gameAliases: Record<string, string[]>
+    gameAliases: Record<string, string[]>,
   ) {
-    let ownedGeneratedHash = this.hashGames(
-      ownedGames.map((game) => game.name)
-    );
+    const generatedHash = this.hashGames(ownedGames.map((game) => game.name));
 
-    if (ownedHash === ownedGeneratedHash) {
-      this.ownedShortNames = (
-        await this.getStorageData(['owned_shortnames'])
-      ).owned_shortnames?.reduce((shortnames, sn) => {
-        shortnames[sn] = true;
-        return shortnames;
-      }, {} as GameShortNames);
+    if (ownedHash === generatedHash) {
+      this.ownedShortNames = this.toShortNameMap(
+        (await this.getStorageData(["owned_shortnames"])).owned_shortnames,
+      );
     }
 
     if (this.ownedShortNames) {
-      SteamChecker.extConsoleOut(
-        `Loaded ${
-          Object.keys(this.ownedShortNames).length
-        } owned game short names`
-      );
+      log(`Loaded ${Object.keys(this.ownedShortNames).length} owned game short names`);
     } else {
       this.ownedShortNames = {};
-
       ownedGames.forEach((game) => {
-        let formattedName = this.formatGameTitle(game.name);
-
-        this.ownedShortNames![formattedName] = true;
+        this.ownedShortNames![normalizeTitle(game.name)] = true;
       });
 
-      let gameArray = Object.keys(this.ownedShortNames);
-      await this.setStorageData({
-        owned_hash: ownedGeneratedHash,
-        owned_shortnames: gameArray,
-      });
-
-      SteamChecker.extConsoleOut(
-        `Saved ${gameArray.length} owned game short names`
-      );
+      const names = Object.keys(this.ownedShortNames);
+      await this.setStorageData({ owned_hash: generatedHash, owned_shortnames: names });
+      log(`Saved ${names.length} owned game short names`);
     }
 
-    // load owned aliases
     this.loadAliases(ownedGames, gameAliases).forEach((alias) => {
       this.ownedShortNames![alias] = true;
     });
@@ -554,288 +409,44 @@ class SteamChecker {
     wishlistGames: string[],
     wishlistHash: number | undefined,
     gameAliases: Record<string, string[]>,
-    allGames: SteamGame[]
+    allGames: SteamGameBasic[],
   ) {
-    let wishlistGeneratedHash = this.hashGames(wishlistGames);
+    const generatedHash = this.hashGames(wishlistGames);
 
-    if (wishlistHash === wishlistGeneratedHash) {
-      this.wishedShortNames = (
-        await this.getStorageData(['wishlist_shortnames'])
-      ).wishlist_shortnames?.reduce((shortnames, sn) => {
-        shortnames[sn] = true;
-        return shortnames;
-      }, {} as GameShortNames);
+    if (wishlistHash === generatedHash) {
+      this.wishedShortNames = this.toShortNameMap(
+        (await this.getStorageData(["wishlist_shortnames"])).wishlist_shortnames,
+      );
     }
 
     if (this.wishedShortNames) {
-      SteamChecker.extConsoleOut(
-        `Loaded ${
-          Object.keys(this.wishedShortNames).length
-        } wishlist game short names`
+      log(
+        `Loaded ${Object.keys(this.wishedShortNames).length} wishlist game short names`,
       );
     } else {
       this.wishedShortNames = {};
+      const namesById = new Map(allGames.map((app) => [String(app.appid), app.name]));
 
-      wishlistGames.forEach((game) => {
-        let foundGame = allGames.find((app) => {
-          if (game === app.appid + '') {
-            return true;
-          }
+      wishlistGames.forEach((appID) => {
+        const name = namesById.get(appID);
+        if (name) this.wishedShortNames![normalizeTitle(name)] = true;
+      });
 
-          return false;
+      const names = Object.keys(this.wishedShortNames);
+      // without the app list no names resolve; don't cache that empty result
+      if (allGames.length > 0) {
+        await this.setStorageData({
+          wishlist_hash: generatedHash,
+          wishlist_shortnames: names,
         });
-
-        if (!foundGame) return;
-
-        let formattedName = this.formatGameTitle(foundGame.name);
-        this.wishedShortNames![formattedName] = true;
-      });
-
-      let gameArray = Object.keys(this.wishedShortNames);
-      await this.setStorageData({
-        wishlist_hash: wishlistGeneratedHash,
-        wishlist_shortnames: gameArray,
-      });
-
-      SteamChecker.extConsoleOut(
-        `Saved ${gameArray.length} wishlist game short names`
-      );
+        log(`Saved ${names.length} wishlist game short names`);
+      }
     }
 
-    // load wishlist aliases
     this.loadAliases(wishlistGames, gameAliases).forEach((alias) => {
       this.wishedShortNames![alias] = true;
     });
   }
-
-  private async processJSON(data: GameData) {
-    SteamChecker.extConsoleOut('Loaded all data.');
-
-    let storageGameData = await this.getStorageData([
-      'numgames',
-      'shortnames',
-      'owned_hash',
-      'wishlist_hash',
-    ]);
-
-    // remove old storage data if it's set
-    if (storageGameData.numgames !== undefined) {
-      this.removeAllStorageData();
-
-      storageGameData.owned_hash = undefined;
-      storageGameData.wishlist_hash = undefined;
-    }
-
-    // check new hashes against previous hashes
-    // refresh data if changed
-    await Promise.all([
-      this.processDataOwnedGames(
-        data.userOwnedGames.games,
-        storageGameData.owned_hash,
-        data.gameAliases
-      ),
-
-      this.processDataWishlistGames(
-        data.userWishlistedGames,
-        storageGameData.wishlist_hash,
-        data.gameAliases,
-        data.steamAppList
-      ),
-    ]);
-  }
-
-  private setElementStyle(
-    element: HTMLElement,
-    extraStyles: Partial<CSSStyleDeclaration>
-  ) {
-    Object.assign(element.style, extraStyles);
-  }
-
-  private addClassToElements(
-    gameElement: SteamcheckerFoundGameElement,
-    classType: 'owned' | 'wished'
-  ) {
-    if (!this.webpageSelectorSettings) {
-      SteamChecker.extConsoleOut('Webpage selector data not loaded.');
-
-      return;
-    }
-
-    // FIXME: selectorSettings and figure out which settings are needed
-    // store selectorSettings in this.webpageGames array?
-
-    let highlightElement: HTMLElement = gameElement.wrapper;
-    if (gameElement.selectorSettings.highlight) {
-      let checkingElement = gameElement.wrapper.querySelector<HTMLElement>(
-        gameElement.selectorSettings.highlight
-      );
-
-      if (!checkingElement) {
-        SteamChecker.extConsoleOut('Webpage selector for highlight not found.');
-
-        return;
-      }
-
-      highlightElement = checkingElement;
-    }
-
-    highlightElement.classList.add(
-      `steamchecker-${classType}${gameElement.selectorSettings.class_type}`
-    );
-
-    if (gameElement.selectorSettings.star && this.svgAssets) {
-      let starElement = gameElement.wrapper.querySelector(
-        gameElement.selectorSettings.star
-      );
-      if (starElement) {
-        starElement.append(this.svgAssets.star);
-      }
-    }
-
-    // set any extra necessary styles
-    if (gameElement.selectorSettings.extra_styles) {
-      Object.keys(gameElement.selectorSettings.extra_styles).forEach(
-        (selector) => {
-          if (selector === ':scope') {
-            this.setElementStyle(
-              gameElement.wrapper,
-              gameElement.selectorSettings.extra_styles![selector]
-            );
-          } else {
-            gameElement.wrapper
-              .querySelectorAll<HTMLElement>(selector)
-              .forEach((selectedElem) => {
-                this.setElementStyle(
-                  selectedElem,
-                  gameElement.selectorSettings.extra_styles![selector]
-                );
-              });
-          }
-        }
-      );
-    }
-  }
-
-  //show owned and wishlisted games
-  private highlightGames() {
-    if (!this.ownedShortNames || !this.wishedShortNames) {
-      SteamChecker.extConsoleOut(
-        `Error highlighting games; no owned or wishlisted games`
-      );
-
-      return;
-    }
-
-    this.timeStartPerformance = Date.now();
-
-    // check if names are the same
-    this.webpageGames.forEach((foundGameElement) => {
-      if (this.ownedShortNames![foundGameElement.name]) {
-        this.addClassToElements(foundGameElement, 'owned');
-      }
-
-      if (this.wishedShortNames![foundGameElement.name]) {
-        this.addClassToElements(foundGameElement, 'wished');
-      }
-    });
-
-    SteamChecker.extConsoleOut(
-      `(TIME) Game Checking on Page: ${
-        Date.now() - this.timeStartPerformance
-      } ms`
-    );
-  }
-
-  private async fetchWebpageSelectors(): Promise<FoxslashResponseModeWebpageSelectors> {
-    let json: FoxslashResponseModeWebpageSelectors = {};
-
-    try {
-      let response = await fetch(
-        `https://www.foxslash.com/apps/steamchecker/selectors/`
-      );
-      json = await response.json();
-
-      let foundPageRegex = Object.keys(json).find((pageRegEx) => {
-        if (window.location.pathname.match(pageRegEx)) {
-          return true;
-        }
-
-        return false;
-      });
-
-      if (!foundPageRegex) {
-        throw new Error('Not yet scanning on this URL pattern');
-      }
-
-      this.webpageSelectorSettings = json[foundPageRegex];
-
-      SteamChecker.extConsoleOut('Fetched game selectors');
-    } catch (err: any) {
-      SteamChecker.extConsoleOut(err);
-    }
-
-    return json;
-  }
-
-  private processWebpageData() {
-    if (!this.webpageSelectorSettings) {
-      SteamChecker.extConsoleOut('Webpage selector data not loaded.');
-
-      return;
-    }
-
-    this.timeStartPerformance = Date.now();
-
-    this.webpageGames = [];
-
-    this.webpageSelectorSettings.forEach((selectorSettings) => {
-      let foundGameWrappers = document.querySelectorAll<HTMLElement>(
-        selectorSettings.game_wrapper
-      );
-
-      if (foundGameWrappers.length === 0) {
-        SteamChecker.extConsoleOut('No games found on this page');
-
-        return;
-      }
-
-      foundGameWrappers.forEach((wrapper) => {
-        let titleElem = wrapper.querySelector<HTMLElement>(
-          selectorSettings.title
-        );
-        if (!titleElem) return;
-
-        let gameTitle: string | null | undefined;
-
-        if (selectorSettings.title_attribute) {
-          gameTitle = titleElem
-            .getAttribute(selectorSettings.title_attribute)
-            ?.trim();
-        } else {
-          gameTitle = titleElem.textContent?.trim();
-        }
-
-        if (!gameTitle) return;
-
-        //this.machineNames.push(gameTitle.replace(/(["'])/, '\\$1'));
-        this.webpageGames.push({
-          name: this.formatGameTitle(gameTitle),
-          wrapper: wrapper,
-          selectorSettings: selectorSettings,
-        });
-      });
-    });
-
-    SteamChecker.extConsoleOut(
-      `Games found on page: ${this.webpageGames.map((g) => g.name).join(', ')}`
-    );
-
-    SteamChecker.extConsoleOut(
-      `(TIME) Webpage Processing: ${Date.now() - this.timeStartPerformance}ms`
-    );
-  }
 }
 
-(() => {
-  new SteamChecker();
-})();
+new SteamChecker();

@@ -1,51 +1,46 @@
-import fs from 'fs';
+import fs from "node:fs";
 
-// replaces chrome.runtime.getURL for Chrome 130+ CSP issues
-// https://github.com/crxjs/chrome-extension-tools/issues/918#issuecomment-2351900637
+/**
+ * Manifest adjustments @crxjs/vite-plugin has no options for. Runs after
+ * `vite build` (see the `build` script).
+ *
+ * `<outDir>` stays the Chrome build. A copy at `<outDir>-firefox` gets the
+ * Firefox background entry, since Chrome warns about `background.scripts` in
+ * MV3 and Firefox doesn't run background service workers.
+ */
 
-function removeChromeRuntimeGetURL() {
-  const loaderFile = fs
-    .readdirSync('dist/assets')
-    .filter((fn) => fn.startsWith('content.ts-loader'))
-    .at(0);
-  if (!loaderFile) {
-    console.log('No file found for content.ts-loader.');
-    return;
-  }
+const outDir = process.argv[2] ?? "dist";
+const firefoxDir = `${outDir}-firefox`;
+const manifestPath = `${outDir}/manifest.json`;
 
-  const loaderFilePath = `dist/assets/${loaderFile}`;
-
-  const loaderContentsOld = fs.readFileSync(loaderFilePath, 'utf8');
-
-  const loaderContentsNew = loaderContentsOld.replace(
-    /chrome\.runtime\.getURL\("assets/g,
-    'await import(".'
-  );
-
-  fs.writeFileSync(loaderFilePath, loaderContentsNew, 'utf8');
+if (!fs.existsSync(manifestPath)) {
+  console.error(`${manifestPath} not found; run vite build first.`);
+  process.exit(1);
 }
-//removeChromeRuntimeGetURL();
 
-// Temp fix for CSP on Chrome 130
-// Manually remove them because there is no option to disable use_dynamic_url on @crxjs/vite-plugin
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+
+// Chrome 130+ CSP: crxjs sets use_dynamic_url on web_accessible_resources,
+// which breaks the content script loader. Remove it.
 // https://github.com/pnd280/complexity/commit/ce9242a0538e86b88ee455b2dea55598f6c779db
-function forceDisableUseDynamicUrl() {
-  const manifestPath = 'dist/manifest.json';
-
-  const manifestContents = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-
-  manifestContents.web_accessible_resources.forEach((resource: any) => {
-    delete resource.use_dynamic_url;
-  });
-
-  if (!fs.existsSync(manifestPath)) {
-    return;
-  }
-
-  fs.writeFileSync(manifestPath, JSON.stringify(manifestContents, null, 2));
+for (const resource of manifest.web_accessible_resources ?? []) {
+  delete resource.use_dynamic_url;
 }
-forceDisableUseDynamicUrl();
 
-console.log(
-  'Updated content.ts-loader and manifest for Content-Security-Policy fix.'
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+
+// Firefox: same files, background as an event page instead of a service worker.
+const { service_worker: serviceWorker, ...background } = manifest.background ?? {};
+if (!serviceWorker) {
+  console.error(`${manifestPath} has no background.service_worker.`);
+  process.exit(1);
+}
+
+fs.rmSync(firefoxDir, { recursive: true, force: true });
+fs.cpSync(outDir, firefoxDir, { recursive: true });
+fs.writeFileSync(
+  `${firefoxDir}/manifest.json`,
+  JSON.stringify({ ...manifest, background: { ...background, scripts: [serviceWorker] } }, null, 2),
 );
+
+console.log(`Patched ${outDir} (Chrome) and wrote ${firefoxDir} (Firefox).`);

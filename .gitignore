@@ -9,9 +9,14 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-e2e
+dist-local
 dist-ssr
 *.local
-extension.zip
+extension-*.zip
+dist-firefox
+dist-e2e-firefox
+dist-local-firefox
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +28,7 @@ extension.zip
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright
+test-results
+playwright-report

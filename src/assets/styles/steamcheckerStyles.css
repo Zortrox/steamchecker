@@ -1,8 +1,212 @@
+#steamchecker-indicator {
+  --navbar-size: 65px;
+  --indicator-size: 24px;
+  --indicator-padding: 6px;
+  --indicator-border: 1px;
+  --indicator-status-size: 6px;
+
+  position: fixed;
+  display: flex;
+  z-index: 9;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  background-color: #111;
+  right: 0;
+  top: calc(
+    var(--navbar-size) / 2 - var(--indicator-size) / 2 -
+      var(--indicator-padding) - var(--indicator-border)
+  );
+  padding: var(--indicator-padding);
+  border: var(--indicator-border) solid #4b3800;
+  border-right-width: 0;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+#steamchecker-indicator img {
+  width: var(--indicator-size);
+}
+#steamchecker-indicator .steamchecker-status {
+  --steamchecker-status-color: #ffc400;
+
+  width: var(--indicator-status-size);
+  height: var(--indicator-status-size);
+  border-radius: var(--indicator-status-size);
+  background-color: var(--steamchecker-status-color);
+  border: 1px solid #0006;
+}
+#steamchecker-indicator .steamchecker-status.steamchecker-status--loading {
+  animation: status-pulse 1s infinite;
+}
+#steamchecker-indicator .steamchecker-status.steamchecker-status--not-scanning {
+  --steamchecker-status-color: #888;
+}
+#steamchecker-indicator .steamchecker-status.steamchecker-status--good {
+  --steamchecker-status-color: #00ff00;
+}
+#steamchecker-indicator .steamchecker-status.steamchecker-status--signed-out {
+  --steamchecker-status-color: #4aa3ff;
+}
+#steamchecker-indicator .steamchecker-status.steamchecker-status--error {
+  --steamchecker-status-color: #ff0000;
+}
+
+@keyframes status-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 3px #ffffff, 0 0 3px var(--steamchecker-status-color);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 5px #ffffff, 0 0 5px var(--steamchecker-status-color);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 3px #ffffff, 0 0 3px var(--steamchecker-status-color);
+  }
+}
+
+/*
+ * Highlight variants. Class names are steamchecker-{owned|wished}{Variant};
+ * the variant comes from `class_type` in the page config. The server can tune
+ * these through the --sc-* custom properties (`style_vars` in the config) but
+ * never sends CSS text, so every rule lives here in the bundle.
+ */
+
+/* NEW SITE: product and bundle item cards (Card) */
+.steamchecker-ownedCard {
+  position: relative;
+  filter: var(--sc-owned-filter, grayscale(1));
+  opacity: var(--sc-owned-opacity, 0.45);
+  transition:
+    opacity 0.3s ease-out,
+    filter 0.3s ease-out;
+}
+.steamchecker-ownedCard:hover {
+  opacity: var(--sc-owned-hover-opacity, 0.85);
+}
+.steamchecker-ownedCard::before {
+  content: var(--sc-owned-label, "Owned");
+  display: var(--sc-label-display, block);
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #000c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.steamchecker-wishedCard {
+  position: relative;
+  outline: var(--sc-wished-outline-width, 3px) solid var(--sc-wished-color, #ffc400);
+  outline-offset: calc(-1 * var(--sc-wished-outline-width, 3px));
+  box-shadow:
+    0 0 14px var(--sc-wished-color, #ffc400),
+    0 0 36px color-mix(in srgb, var(--sc-wished-color, #ffc400) 60%, transparent) !important;
+  transition: box-shadow 0.5s ease-out;
+}
+/* gold wash over the card so it reads as "wishlisted" at a glance */
+.steamchecker-wishedCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sc-wished-color, #ffc400) var(--sc-wished-tint, 45%), transparent) 0%,
+    color-mix(in srgb, var(--sc-wished-color, #ffc400) 22%, transparent) 40%,
+    color-mix(in srgb, var(--sc-wished-color, #ffc400) 32%, transparent) 100%
+  );
+  box-shadow: inset 0 0 40px
+    color-mix(in srgb, var(--sc-wished-color, #ffc400) 60%, transparent);
+}
+
+/* NEW SITE: library list rows (LibraryRow) */
+.steamchecker-ownedLibraryRow {
+  position: relative;
+  display: block;
+  /* room for the label so it never covers the title */
+  padding-right: var(--sc-label-space, 136px);
+  filter: var(--sc-owned-filter, grayscale(1));
+  opacity: var(--sc-owned-opacity, 0.5);
+  transition: opacity 0.3s ease-out;
+}
+.steamchecker-ownedLibraryRow:hover {
+  opacity: var(--sc-owned-hover-opacity, 0.9);
+}
+.steamchecker-ownedLibraryRow::after {
+  content: var(--sc-owned-label, "In Steam library");
+  display: var(--sc-label-display, block);
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #000c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.steamchecker-wishedLibraryRow {
+  position: relative;
+  display: block;
+  padding-right: var(--sc-label-space, 136px);
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sc-wished-color, #ffc400) var(--sc-wished-tint, 45%), transparent),
+    transparent 80%
+  );
+  box-shadow:
+    inset 0 0 0 var(--sc-wished-outline-width, 3px) var(--sc-wished-color, #ffc400),
+    0 0 16px color-mix(in srgb, var(--sc-wished-color, #ffc400) 70%, transparent);
+}
+.steamchecker-wishedLibraryRow > .steamchecker-badge {
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+}
+
+/* Wishlist badge: flat gold tile with the present icon, added by the content script */
+.steamchecker-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 30;
+  display: var(--sc-badge-display, inline-flex);
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: 2px solid #1a1200;
+  border-radius: 8px;
+  background: var(--sc-wished-color, #ffc400);
+  color: #1a1200;
+  pointer-events: none;
+}
+.steamchecker-badge .steamchecker-gift {
+  display: block;
+  width: var(--sc-gift-size, 22px);
+  height: var(--sc-gift-size, 22px);
+}
+
+/* LEGACY SITE: game tiles (Game) */
 .steamchecker-ownedGame {
   filter: grayscale(1);
 }
 .steamchecker-ownedGame:after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   width: 100%;
@@ -21,7 +225,7 @@
   transition: all 0.5s ease-out;
 }
 
-/*HUMBLE BUNDLE KEYS*/
+/* LEGACY SITE: keys table (Key) */
 .steamchecker-ownedKey {
   box-shadow: inset 0 1px 6px black;
   background: #8e8e8e !important;
@@ -37,21 +241,8 @@
   border-color: #848484 !important;
   transition: all 0.5s ease-out;
 }
-.steamchecker-ownedKey .hb-gift {
+.steamchecker-wishedKey .hb-gift {
   position: relative;
-}
-.steamchecker-ownedKey .hb-gift .steamchecker-star {
-  position: absolute;
-  left: calc(50% - 32px);
-  top: calc(50% - 32px);
-
-  -webkit-filter: blur(3px);
-  -moz-filter: blur(3px);
-  filter: blur(3px);
-
-  -webkit-animation: fs-rotate 4s linear infinite;
-  -moz-animation: fs-rotate 4s linear infinite;
-  animation: fs-rotate 4s linear infinite;
 }
 .steamchecker-ownedKey i.hb-gift {
   color: #ffd700;
@@ -72,21 +263,4 @@
   box-shadow: 0 0 5px #ff6900;
   font-weight: bold;
   color: #656565;
-}
-
-@-moz-keyframes fs-rotate {
-  100% {
-    -moz-transform: rotate(360deg);
-  }
-}
-@-webkit-keyframes fs-rotate {
-  100% {
-    -webkit-transform: rotate(360deg);
-  }
-}
-@keyframes fs-rotate {
-  100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
 }
