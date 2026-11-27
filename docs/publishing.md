@@ -161,6 +161,31 @@ of your shell history:
 gh secret set CWS_PUBLISHER_ID --repo Zortrox/steamchecker
 ```
 
+## Store screenshots
+
+`bun run screenshots` (after `bun run build`) opens the live humblebundle.com
+bundle, Store and On Sale pages with the built extension and mocked foxslash
+data, marks a few games on each page as owned or wishlisted, and saves
+1280x800 PNGs to `store-assets/screenshots/` (git-ignored). 1280x800 is
+accepted by all three stores. The pages change daily, so look at the images
+before using them.
+
+Only Firefox Add-ons has an API for listing images.
+`bun run publish:amo-screenshots` (with `WEB_EXT_API_KEY` and
+`WEB_EXT_API_SECRET` set) uploads the PNGs in file-name order with the captions
+in `scripts/publish-amo-screenshots.ts`, then deletes the screenshots that were
+there before. Add `-- --dry-run` to see what it would change. The Chrome Web
+Store and Edge Add-ons APIs only take packages, so upload the same files in
+their dashboards (Chrome: Store listing, Screenshots, up to 5; Edge: Partner
+Center, Store listings).
+
+In CI, run **Store screenshots** from the Actions tab. It keeps the PNGs as the
+`store-screenshots` artifact and, with **upload_amo** ticked, replaces the AMO
+screenshots. To refresh them after every release, set the repository variable
+`UPDATE_STORE_SCREENSHOTS` to `true`; publish-stores then calls the same
+workflow after the store uploads, as a separate job so a change on
+humblebundle.com can't fail the release.
+
 ## Sign-in redirect URLs
 
 Each store gives the extension its own ID, and foxslash only redirects sign-in

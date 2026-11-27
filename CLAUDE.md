@@ -31,6 +31,10 @@ separate Laravel repo at `~/projects/foxslash`.
   mocked foxslash data (run after `build`; the highlight tests use `dist/`).
   `E2E_LIVE=1` uses the real humblebundle.com pages instead; `CHROMIUM_PATH`
   points at another Chromium build. Screenshots land in `test-results/`.
+- `bun run screenshots`: store listing screenshots from the live Humble pages
+  with mocked foxslash data, to `store-assets/screenshots/` (run after
+  `build`). `bun run publish:amo-screenshots` replaces the AMO listing images;
+  Chrome and Edge have no API for them. See `docs/publishing.md`.
 - `bun run check:config [url]`: validate the config foxslash serves
 - `bun run fonts`: re-download popup fonts from Bunny Fonts into `src/assets/fonts`
 

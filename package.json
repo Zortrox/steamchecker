@@ -37,7 +37,9 @@
     "publish:chrome": "bun scripts/publish-chrome.ts extension-chrome.zip",
     "publish:edge": "bun scripts/publish-edge.ts extension-chrome.zip",
     "publish:firefox": "rm -rf release-firefox && unzip -q extension-firefox.zip -d release-firefox && web-ext sign --source-dir release-firefox --channel listed --upload-source-code extension-source.zip --approval-timeout 0 --artifacts-dir web-ext-artifacts",
-    "build:unpacked": "vite build --mode unpacked --outDir dist-unpacked && bun postbuildfixes.ts dist-unpacked"
+    "build:unpacked": "vite build --mode unpacked --outDir dist-unpacked && bun postbuildfixes.ts dist-unpacked",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
+    "publish:amo-screenshots": "bun scripts/publish-amo-screenshots.ts store-assets/screenshots"
   },
   "type": "module"
 }

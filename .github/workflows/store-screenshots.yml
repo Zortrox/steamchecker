@@ -1,0 +1,78 @@
+name: Store screenshots
+
+# Takes the store listing screenshots on the live humblebundle.com pages
+# (`bun run screenshots`, mocked foxslash data) and keeps them as an artifact.
+# With upload_amo, also replaces the Firefox Add-ons listing screenshots.
+# Chrome Web Store and Edge Add-ons have no API for listing images, so upload
+# the artifact's PNGs in their dashboards. See docs/publishing.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or tag to build the extension from
+        type: string
+        default: main
+      upload_amo:
+        description: Replace the Firefox Add-ons listing screenshots
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      upload_amo:
+        type: boolean
+        default: false
+    secrets:
+      AMO_JWT_ISSUER:
+        required: false
+      AMO_JWT_SECRET:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    env:
+      WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+      WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build
+        run: bun run build
+
+      - name: Take screenshots on humblebundle.com
+        run: bun run screenshots
+
+      - name: Keep the screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots
+          path: store-assets/screenshots/*.png
+          if-no-files-found: error
+
+      - name: Replace Firefox Add-ons screenshots
+        if: inputs.upload_amo
+        run: |
+          if [ -z "$WEB_EXT_API_SECRET" ]; then
+            echo "::warning::AMO secrets are not set; skipping the upload."
+            exit 0
+          fi
+          bun run publish:amo-screenshots
